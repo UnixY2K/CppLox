@@ -33,6 +33,7 @@
 
 # vscode 
 .vscode/
+.cache/
 
 # meson
 builddir/
