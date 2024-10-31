@@ -36,3 +36,4 @@
 
 # meson
 builddir/
+compile_commands.json
