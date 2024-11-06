@@ -1,6 +1,7 @@
 cpplox_cli_incl = include_directories('include')
 
 cpplox_cli_srcs = [
+    'src/debug.cpp',
     'src/source.cpp'
 ]
 cpplox_cli_args = []

@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <span>
+#include <tuple>
 #include <vector>
 
 namespace lox {
@@ -14,16 +15,17 @@ enum class OpCode {
 
 class Chunk {
   public:
-	void write(std::byte byte, int line);
+	void write(std::byte byte, size_t line);
 	size_t addConstant(Value value);
 
 	std::span<const std::byte> code() const;
-	std::span<const int> lines() const;
+	std::size_t getLine(std::size_t offset) const;
 	std::span<const Value> constants() const;
 
   private:
 	std::vector<std::byte> m_code;
-	std::vector<int> m_lines;
+	// RLE encoding of line numbers
+	std::vector<std::tuple<size_t, size_t>> m_lines;
 	std::vector<Value> m_constants;
 };
 
