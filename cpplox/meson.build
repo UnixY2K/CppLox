@@ -1,8 +1,7 @@
 cpplox_incl = include_directories('include')
 
 cpplox_srcs = [
-    'src/interface.cpp',
-    'src/sum.cpp',
+    'src/chunk.cpp'
 ]
 cpplox_args = []
 cpplox_link = []
