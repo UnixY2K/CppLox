@@ -10,12 +10,14 @@ namespace lox {
 
 enum class OpCode {
 	OP_CONSTANT,
+	OP_CONSTANT_LONG,
 	OP_RETURN,
 };
 
 class Chunk {
   public:
 	void write(std::byte byte, size_t line);
+	void writeConstant(Value value, size_t line);
 	size_t addConstant(Value value);
 
 	std::span<const std::byte> code() const;

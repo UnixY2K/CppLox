@@ -11,8 +11,8 @@
 
 namespace lox::cli::debug {
 
-int ConstantInstruction(std::string_view name, const lox::Chunk &chunk,
-                        size_t offset) {
+size_t ConstantInstruction(std::string_view name, const lox::Chunk &chunk,
+                           size_t offset) {
 	uint8_t constant = static_cast<uint8_t>(chunk.code()[offset + 1]);
 	std::cout << std::format(
 	    "{:<4} {} '", terminal::cyan_colored(name),
@@ -23,12 +23,25 @@ int ConstantInstruction(std::string_view name, const lox::Chunk &chunk,
 	return offset + 2;
 }
 
-int SimpleInstruction(std::string_view name, int offset) {
+size_t ConstantLongInstruction(std::string_view name, const lox::Chunk &chunk,
+                               size_t offset) {
+	uint16_t constant = static_cast<uint16_t>(chunk.code()[offset + 1]) << 8 |
+	                    static_cast<uint16_t>(chunk.code()[offset + 2]);
+	std::cout << std::format(
+	    "{:<4} {} '", terminal::cyan_colored(name),
+	    terminal::yellow_colored(std::format("{:4d}", constant)));
+	std::cout << terminal::green_colored(
+	    std::format("{:g}", chunk.constants()[constant]));
+	std::cout << "'\n";
+	return offset + 3;
+}
+
+size_t SimpleInstruction(std::string_view name, int offset) {
 	std::cout << std::format("{}\n", terminal::cyan_colored(name));
 	return offset + 1;
 }
 
-int InstructionDisassembly(const lox::Chunk &chunk, size_t offset) {
+size_t InstructionDisassembly(const lox::Chunk &chunk, size_t offset) {
 	std::cout << std::format("{:#04d} ", offset);
 	auto instruction = static_cast<lox::OpCode>(chunk.code()[offset]);
 	if (offset > 0 && chunk.getLine(offset) == chunk.getLine(offset - 1)) {

@@ -1,5 +1,7 @@
 #include <cpplox/chunk.hpp>
+
 #include <cstddef>
+#include <cstdint>
 #include <span>
 
 namespace lox {
@@ -11,6 +13,18 @@ void Chunk::write(std::byte byte, size_t line) {
 		++std::get<1>(m_lines.back());
 	}
 }
+void Chunk::writeConstant(Value value, size_t line) {
+	size_t index = addConstant(value);
+	if (index <= UINT8_MAX) {
+		write(static_cast<std::byte>(OpCode::OP_CONSTANT), line);
+		write(static_cast<std::byte>(index), line);
+	} else {
+		write(static_cast<std::byte>(OpCode::OP_CONSTANT_LONG), line);
+		write(static_cast<std::byte>(index >> 8), line);
+		write(static_cast<std::byte>(index & 0x00ff), line);
+	}
+}
+
 size_t Chunk::addConstant(Value value) {
 	m_constants.push_back(value);
 	return m_constants.size() - 1;
@@ -21,7 +35,7 @@ std::size_t Chunk::getLine(std::size_t offset) const {
 	size_t line = 1;
 	for (const auto &[lineNumber, count] : m_lines) {
 		size_t end = offset + count - 1;
-		if(line <= end) {
+		if (line <= end) {
 			return lineNumber;
 		}
 		line += count;
