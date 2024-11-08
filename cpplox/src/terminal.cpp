@@ -1,6 +1,8 @@
-#pragma once
+#include <cpplox/terminal.hpp>
 
+#include <format>
 #include <iostream>
+#include <string>
 #include <string_view>
 
 namespace lox::cli::terminal {
