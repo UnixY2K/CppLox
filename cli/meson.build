@@ -8,7 +8,7 @@ cpplox_cli_link = []
 cpplox_cli_deps = [cpplox_dep]
 
 executable(
-    'cpplox',
+    'lox',
     cpplox_cli_srcs,
     include_directories: [cpplox_cli_incl],
     cpp_args: cpplox_cli_args,

@@ -1,6 +1,6 @@
 #include <cpplox/chunk.hpp>
-#include <cpplox/value.hpp>
 #include <cpplox/terminal.hpp>
+#include <cpplox/value.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -10,18 +10,21 @@
 #include <span>
 #include <string_view>
 
-
 namespace lox::debug {
 
-std::byte readByte(std::span<const std::byte>::iterator &ip) { return *(ip++); }
+std::byte readByte(std::span<const std::byte>::iterator &ip) { return *ip++; }
+
+std::byte nextByte(std::span<const std::byte>::iterator &ip) { return *++ip; }
+
+std::byte peekByte(std::span<const std::byte>::iterator &ip) { return *ip; }
 
 void ConstantInstruction(std::string_view name, const lox::Chunk &chunk,
                          std::span<const std::byte>::iterator &ip) {
 	auto instruction = static_cast<lox::OpCode>(*ip);
-	size_t address = static_cast<uint8_t>(readByte(ip));
+	size_t address = static_cast<uint8_t>(nextByte(ip));
 	[[unlikely]]
 	if (instruction == OpCode::OP_CONSTANT_LONG) {
-		address = address << 8 | static_cast<uint8_t>(readByte(ip));
+		address = address << 8 | static_cast<uint8_t>(nextByte(ip));
 	}
 	Value value = chunk.constants()[address];
 	std::cout << std::format(
@@ -41,7 +44,7 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 	auto address = std::distance(chunk.code().begin(), ip);
 	size_t offset = address;
 	std::cout << std::format("{:#04d} ", offset);
-	auto instruction = static_cast<lox::OpCode>(chunk.code()[offset]);
+	auto instruction = static_cast<lox::OpCode>(peekByte(ip));
 	if (offset > 0 && chunk.getLine(offset) == chunk.getLine(offset - 1)) {
 		std::cout << std::format("   | ");
 	} else {
@@ -53,12 +56,21 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 	case OpCode::OP_CONSTANT:
 		ConstantInstruction("OP_CONSTANT", chunk, ip);
 		break;
+	case OpCode::OP_ADD:
+		return SimpleInstruction("OP_ADD", ip);
+	case OpCode::OP_SUBTRACT:
+		return SimpleInstruction("OP_SUBTRACT", ip);
+	case OpCode::OP_MULTIPLY:
+		return SimpleInstruction("OP_MULTIPLY", ip);
+	case OpCode::OP_DIVIDE:
+		return SimpleInstruction("OP_DIVIDE", ip);
+	case OpCode::OP_NEGATE:
+		return SimpleInstruction("OP_NEGATE", ip);
 	case OpCode::OP_RETURN:
-		SimpleInstruction("OP_RETURN", ip);
-		break;
+		return SimpleInstruction("OP_RETURN", ip);
 	default:
 		cli::terminal::logError(std::format("OP_UNKWN ({:#04x})",
-		                               static_cast<uint8_t>(instruction)));
+		                                    static_cast<uint8_t>(instruction)));
 		return;
 	}
 }
@@ -72,4 +84,4 @@ void ChunkDisassembly(const lox::Chunk &chunk, std::string_view name) {
 	}
 }
 
-} // namespace lox::cli::debug
+} // namespace lox::debug
