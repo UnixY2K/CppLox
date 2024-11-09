@@ -118,6 +118,20 @@ void Scanner::skipWhitespace() {
 				while (peek() != '\n' && !isAtEnd()) {
 					advance();
 				}
+			}
+			// multiline comments
+			else if (peekNext() == '*') {
+				while (!(peek() == '*' && peekNext() == '/') && !isAtEnd()) {
+					if (peek() == '\n') {
+						++line;
+					}
+					advance();
+				}
+				// advance past the closing */
+				if(!isAtEnd()) {
+					advance();
+					advance();
+				}
 			} else {
 				return;
 			}
