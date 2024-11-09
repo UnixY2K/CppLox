@@ -75,6 +75,7 @@ class Scanner {
 	Token string();
 
   public:
+	Scanner() = default;
 	Scanner(std::string_view source);
 	Token scanToken();
 

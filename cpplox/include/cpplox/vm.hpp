@@ -23,7 +23,7 @@ class VM {
 
   public:
 	VM(bool debug_trace = false) : debug_trace_instruction(debug_trace) {}
-	InterpretResult interpret(Chunk &chunk);
+	InterpretResult interpret(const Chunk &chunk);
 	InterpretResult interpret(std::string_view source);
 	bool debug_trace_instruction;
 

@@ -35,25 +35,29 @@ void repl() {
 	std::cout << "Type '#exit' to quit\n";
 	std::cout << "> ";
 	while (std::getline(std::cin, line)) {
-		// check if starts with #
-		if (line[0] == '#') {
-			if (line == "#exit") {
-				return;
-			} else if (line == "#help") {
-				std::cout << "Lox REPL\n";
-				std::cout << "Type '#exit' to quit\n";
-			} else if (line == "#clear") {
-				std::cout << "\033[2J\033[1;1H";
-			} else if (line == "#debug_trace") {
-				vm.debug_trace_instruction = !vm.debug_trace_instruction;
-				std::cout << std::format("Debug trace is {}\n",
-				                         vm.debug_trace_instruction ? "on"
-				                                                    : "off");
+		line = trim(line);
+		if (!line.empty()) {
+
+			// check if starts with #
+			if (line[0] == '#') {
+				if (line == "#exit") {
+					return;
+				} else if (line == "#help") {
+					std::cout << "Lox REPL\n";
+					std::cout << "Type '#exit' to quit\n";
+				} else if (line == "#clear") {
+					std::cout << "\033[2J\033[1;1H";
+				} else if (line == "#debug_trace") {
+					vm.debug_trace_instruction = !vm.debug_trace_instruction;
+					std::cout << std::format(
+					    "Debug trace is {}\n",
+					    vm.debug_trace_instruction ? "on" : "off");
+				} else {
+					std::cout << "Unknown command\n";
+				}
 			} else {
-				std::cout << "Unknown command\n";
+				vm.interpret(line);
 			}
-		} else {
-			vm.interpret(line);
 		}
 		std::cout << "> ";
 	}

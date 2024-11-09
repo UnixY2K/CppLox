@@ -95,7 +95,7 @@ InterpretResult VM::run() {
 	return InterpretResult::OK;
 }
 
-InterpretResult VM::interpret(Chunk &chunk) {
+InterpretResult VM::interpret(const Chunk &chunk) {
 	this->chunk = chunk;
 	this->ip = this->chunk.code().begin();
 	this->ip_end = this->chunk.code().end();
@@ -103,11 +103,12 @@ InterpretResult VM::interpret(Chunk &chunk) {
 }
 
 InterpretResult VM::interpret(std::string_view source) {
-	Chunk chunk;
-	if (!lox::compile(source)) {
+	auto compiler = Compiler{};
+	if (const auto result = compiler.compile(source); result.has_value()) {
+		return interpret(result.value());
+	} else {
 		return InterpretResult::COMPILE_ERROR;
 	}
-	return interpret(chunk);
 }
 
 } // namespace lox
