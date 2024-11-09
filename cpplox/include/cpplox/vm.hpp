@@ -3,6 +3,7 @@
 #include <cpplox/value.hpp>
 
 #include <cstddef>
+#include <string_view>
 
 namespace lox {
 enum class InterpretResult { OK, COMPILE_ERROR, RUNTIME_ERROR };
@@ -23,9 +24,10 @@ class VM {
   public:
 	VM(bool debug_trace = false) : debug_trace_instruction(debug_trace) {}
 	InterpretResult interpret(Chunk &chunk);
+	InterpretResult interpret(std::string_view source);
+	bool debug_trace_instruction;
 
   private:
-	bool debug_trace_instruction;
 	Chunk chunk;
 	std::vector<Value> stack;
 	std::span<const std::byte>::iterator ip;

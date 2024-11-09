@@ -1,7 +1,8 @@
 cpplox_cli_incl = include_directories('include')
 
 cpplox_cli_srcs = [
-    'src/source.cpp'
+    'src/repl.cpp',
+    'src/source.cpp',
 ]
 cpplox_cli_args = []
 cpplox_cli_link = []

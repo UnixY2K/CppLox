@@ -1,4 +1,5 @@
 #include <cpplox/chunk.hpp>
+#include <cpplox/compiler.hpp>
 #include <cpplox/debug.hpp>
 #include <cpplox/value.hpp>
 #include <cpplox/vm.hpp>
@@ -40,8 +41,7 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 		stack.push_back(a / b);
 		break;
 	default:
-		[[unlikely]]
-		throw std::runtime_error("Unhandled OpCode in binaryOp");
+		[[unlikely]] throw std::runtime_error("Unhandled OpCode in binaryOp");
 	}
 }
 
@@ -101,4 +101,13 @@ InterpretResult VM::interpret(Chunk &chunk) {
 	this->ip_end = this->chunk.code().end();
 	return run();
 }
+
+InterpretResult VM::interpret(std::string_view source) {
+	Chunk chunk;
+	if (!lox::compile(source)) {
+		return InterpretResult::COMPILE_ERROR;
+	}
+	return interpret(chunk);
+}
+
 } // namespace lox

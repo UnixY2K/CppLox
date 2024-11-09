@@ -2,9 +2,11 @@ cpplox_incl = include_directories('include')
 
 cpplox_srcs = [
     'src/chunk.cpp',
+    'src/compiler.cpp',
     'src/debug.cpp',
+    'src/scanner.cpp',
     'src/terminal.cpp',
-    'src/vm.cpp'
+    'src/vm.cpp',
 ]
 cpplox_args = []
 cpplox_link = []
