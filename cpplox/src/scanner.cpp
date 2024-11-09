@@ -62,6 +62,10 @@ Token Scanner::scanToken() {
 	case '>':
 		return makeToken(match('=') ? Token::TokenType::TOKEN_GREATER_EQUAL
 		                            : Token::TokenType::TOKEN_GREATER);
+	case '?':
+		return makeToken(Token::TokenType::TOKEN_QUESTION);
+	case ':':
+		return makeToken(Token::TokenType::TOKEN_COLON);
 	case '"':
 		return string();
 	}
@@ -128,7 +132,7 @@ void Scanner::skipWhitespace() {
 					advance();
 				}
 				// advance past the closing */
-				if(!isAtEnd()) {
+				if (!isAtEnd()) {
 					advance();
 					advance();
 				}
