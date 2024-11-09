@@ -19,6 +19,7 @@ struct Token {
 		TOKEN_SEMICOLON,
 		TOKEN_SLASH,
 		TOKEN_STAR,
+
 		// One or two character tokens.
 		TOKEN_BANG,
 		TOKEN_BANG_EQUAL,
@@ -28,10 +29,16 @@ struct Token {
 		TOKEN_GREATER_EQUAL,
 		TOKEN_LESS,
 		TOKEN_LESS_EQUAL,
+
+		// misc '?', ':'
+		TOKEN_QUESTION,
+		TOKEN_COLON,
+
 		// Literals.
 		TOKEN_IDENTIFIER,
 		TOKEN_STRING,
 		TOKEN_NUMBER,
+
 		// Keywords.
 		TOKEN_AND,
 		TOKEN_CLASS,
@@ -49,6 +56,8 @@ struct Token {
 		TOKEN_TRUE,
 		TOKEN_VAR,
 		TOKEN_WHILE,
+		TOKEN_CONTINUE,
+		TOKEN_BREAK,
 
 		TOKEN_ERROR,
 		TOKEN_EOF
