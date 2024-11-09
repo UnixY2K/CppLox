@@ -228,6 +228,10 @@ auto Compiler::compile(std::string_view source)
 	chunk = Chunk{};
 	scanner = Scanner{source};
 	advance();
+	// if the token is EOF we have an empty program, so we return an empty chunk
+	if (parser.current.type == Token::TokenType::TOKEN_EOF) {
+		return chunk;
+	}
 	expression();
 	consume(Token::TokenType::TOKEN_EOF, "Expect end of expression");
 	endCompiler();
