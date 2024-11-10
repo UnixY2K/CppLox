@@ -240,8 +240,7 @@ void Compiler::binary() {
 	    static_cast<Precedence>(static_cast<size_t>(rule.precedence) + 1));
 	switch (operatorType) {
 	case Token::TokenType::TOKEN_BANG_EQUAL:
-		emmitByte(static_cast<std::byte>(OpCode::OP_EQUAL));
-		emmitByte(static_cast<std::byte>(OpCode::OP_NOT));
+		emmitByte(static_cast<std::byte>(OpCode::OP_NOT_EQUAL));
 		break;
 	case Token::TokenType::TOKEN_EQUAL_EQUAL:
 		emmitByte(static_cast<std::byte>(OpCode::OP_EQUAL));
@@ -250,15 +249,13 @@ void Compiler::binary() {
 		emmitByte(static_cast<std::byte>(OpCode::OP_GREATER));
 		break;
 	case Token::TokenType::TOKEN_GREATER_EQUAL:
-		emmitByte(static_cast<std::byte>(OpCode::OP_LESS));
-		emmitByte(static_cast<std::byte>(OpCode::OP_NOT));
+		emmitByte(static_cast<std::byte>(OpCode::OP_GREATER_EQUAL));
 		break;
 	case Token::TokenType::TOKEN_LESS:
 		emmitByte(static_cast<std::byte>(OpCode::OP_LESS));
 		break;
 	case Token::TokenType::TOKEN_LESS_EQUAL:
-		emmitByte(static_cast<std::byte>(OpCode::OP_GREATER));
-		emmitByte(static_cast<std::byte>(OpCode::OP_NOT));
+		emmitByte(static_cast<std::byte>(OpCode::OP_LESS_EQUAL));
 		break;
 	case Token::TokenType::TOKEN_PLUS:
 		emmitByte(static_cast<std::byte>(OpCode::OP_ADD));

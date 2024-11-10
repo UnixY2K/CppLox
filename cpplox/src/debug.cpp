@@ -65,10 +65,16 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 		return SimpleInstruction("OP_FALSE", ip);
 	case OpCode::OP_EQUAL:
 		return SimpleInstruction("OP_EQUAL", ip);
+	case OpCode::OP_NOT_EQUAL:
+		return SimpleInstruction("OP_NOT_EQUAL", ip);
 	case OpCode::OP_GREATER:
 		return SimpleInstruction("OP_GREATER", ip);
+	case OpCode::OP_GREATER_EQUAL:
+		return SimpleInstruction("OP_GREATER_EQUAL", ip);
 	case OpCode::OP_LESS:
 		return SimpleInstruction("OP_LESS", ip);
+	case OpCode::OP_LESS_EQUAL:
+		return SimpleInstruction("OP_LESS_EQUAL", ip);
 	case OpCode::OP_ADD:
 		return SimpleInstruction("OP_ADD", ip);
 	case OpCode::OP_SUBTRACT:

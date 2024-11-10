@@ -41,10 +41,21 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 	case OpCode::OP_EQUAL:
 		stack.push_back(valuesEqual(va, vb));
 		break;
+	case OpCode::OP_NOT_EQUAL:
+		stack.push_back(!valuesEqual(va, vb));
+		break;
 	case OpCode::OP_GREATER:
 		std::visit(
 		    overloads{
 		        [this](double a, double b) { stack.push_back(a > b); },
+		        onlyNumbers,
+		    },
+		    va, vb);
+		break;
+	case OpCode::OP_GREATER_EQUAL:
+		std::visit(
+		    overloads{
+		        [this](double a, double b) { stack.push_back(a >= b); },
 		        onlyNumbers,
 		    },
 		    va, vb);
@@ -58,6 +69,14 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 		    va, vb);
 		break;
 	}
+	case OpCode::OP_LESS_EQUAL:
+		std::visit(
+		    overloads{
+		        [this](double a, double b) { stack.push_back(a <= b); },
+		        onlyNumbers,
+		    },
+		    va, vb);
+		break;
 	case OpCode::OP_ADD:
 		std::visit(
 		    overloads{
@@ -141,8 +160,11 @@ InterpretResult VM::run() {
 			stack.push_back(false);
 			break;
 		case OpCode::OP_EQUAL:
+		case OpCode::OP_NOT_EQUAL:
 		case OpCode::OP_GREATER:
+		case OpCode::OP_GREATER_EQUAL:
 		case OpCode::OP_LESS:
+		case OpCode::OP_LESS_EQUAL:
 		case OpCode::OP_ADD:
 		case OpCode::OP_SUBTRACT:
 		case OpCode::OP_MULTIPLY:
