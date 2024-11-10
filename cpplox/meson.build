@@ -4,6 +4,7 @@ cpplox_srcs = [
     'src/chunk.cpp',
     'src/compiler.cpp',
     'src/debug.cpp',
+    'src/obj.cpp',
     'src/scanner.cpp',
     'src/terminal.cpp',
     'src/value.cpp',

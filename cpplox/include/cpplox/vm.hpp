@@ -30,6 +30,7 @@ class VM {
 	bool debug_trace_instruction;
 
   private:
+	bool had_error = false;
 	Chunk chunk;
 	std::vector<Value> stack;
 	std::span<const std::byte>::iterator ip;

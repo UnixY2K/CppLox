@@ -65,6 +65,7 @@ class Compiler {
 	void literal();
 	void grouping();
 	void number();
+	void string();
 	void unary();
 	void parsePrecedence(Precedence precedence);
 	ParseRule &getRule(Token::TokenType type);

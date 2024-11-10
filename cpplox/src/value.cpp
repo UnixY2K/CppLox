@@ -1,3 +1,4 @@
+#include <cpplox/obj.hpp>
 #include <cpplox/value.hpp>
 
 #include <format>
@@ -10,14 +11,19 @@ std::string valueToString(const Value &value) {
 	std::string result;
 	std::visit(
 	    overloads{
-	        [&result](double value) { result = std::format("{:g}", value); },
 	        [&result](bool value) { result = std::format("{}", value); },
+	        [&result](double value) { result = std::format("{:g}", value); },
+	        [&result](const Obj &value) {
+		        result = std::format("{}", objToString(value));
+	        },
 	        [&result](std::monostate) { result = std::format("nil"); },
 	    },
 	    value);
 
 	return result;
 }
+
+Value stringToValue(std::string_view str) { return Obj{std::string{str}}; }
 
 bool isTruthy(const Value &value) {
 	bool result = true;
@@ -39,6 +45,16 @@ bool valuesEqual(const Value &a, const Value &b) {
 	               [&result](double a, double b) { result = a == b; },
 	               [&result](bool a, bool b) { result = a == b; },
 	               [&result](std::monostate, std::monostate) { result = true; },
+	               [&result](const Obj &a, const Obj &b) {
+		               std::visit(overloads{
+		                              [&result](const std::string &a,
+		                                        const std::string &b) {
+			                              result = a == b;
+		                              },
+		                              [&result](auto, auto) { result = true; },
+		                          },
+		                          a, b);
+	               },
 	               [](auto, auto) {},
 	           },
 	           a, b);

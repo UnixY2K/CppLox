@@ -1,7 +1,9 @@
 #include <cpplox/chunk.hpp>
 #include <cpplox/compiler.hpp>
 #include <cpplox/debug.hpp>
+#include <cpplox/obj.hpp>
 #include <cpplox/scanner.hpp>
+#include <cpplox/value.hpp>
 
 #include <cstddef>
 #include <format>
@@ -90,6 +92,8 @@ void Compiler::initializeRules() {
 
 	// TOKEN_IDENTIFIER
 	// TOKEN_STRING
+	rules[static_cast<size_t>(Token::TokenType::TOKEN_STRING)] = {
+	    &Compiler::string, nullptr, Precedence::PREC_NONE};
 	// TOKEN_NUMBER
 	rules[static_cast<size_t>(Token::TokenType::TOKEN_NUMBER)] = {
 	    &Compiler::number, nullptr, Precedence::PREC_NONE};
@@ -289,6 +293,13 @@ void Compiler::number() {
 		return;
 	}
 	emmitConstant(value);
+}
+
+void Compiler::string() {
+	// remove the quotes from the string
+	auto str =
+	    parser.previous.lexeme.substr(1, parser.previous.lexeme.size() - 2);
+	emmitConstant(stringToValue(str));
 }
 
 void Compiler::unary() {

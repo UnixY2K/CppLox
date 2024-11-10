@@ -15,6 +15,7 @@ namespace lox {
 void VM::runtimeError(std::string_view message) {
 	std::cerr << std::format("{}\n", message);
 	std::cerr << std::format("[line {}] in script\n", 0);
+	had_error = true;
 	stack.clear();
 }
 
@@ -81,7 +82,23 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 		std::visit(
 		    overloads{
 		        [this](double a, double b) { stack.push_back(a + b); },
-		        onlyNumbers,
+		        [&](const Obj &a, const Obj &b) {
+			        std::visit(
+			            overloads{
+			                [this](const std::string &a, const std::string &b) {
+				                stack.push_back(a + b);
+			                },
+			                [this](auto, auto) {
+				                runtimeError("Operands must be two numbers or "
+				                             "two strings.");
+			                },
+			            },
+			            a, b);
+		        },
+		        [this](auto, auto) {
+			        runtimeError("Operands must be two numbers or "
+			                     "two strings.");
+		        },
 		    },
 		    va, vb);
 		break;
@@ -186,16 +203,25 @@ InterpretResult VM::run() {
 			break;
 		}
 		case OpCode::OP_RETURN: {
-			std::cout << std::format("{}\n", valueToString(stack.back()));
-			stack.pop_back();
+			// check if stack is empty
+			if (!stack.empty()) {
+				std::cout << std::format("{}\n", valueToString(stack.back()));
+				stack.pop_back();
+			} else {
+				runtimeError("tried to return from an empty stack");
+			}
 			return InterpretResult::OK;
 		}
+		}
+		if (had_error) {
+			return InterpretResult::RUNTIME_ERROR;
 		}
 	}
 	return InterpretResult::OK;
 }
 
 InterpretResult VM::interpret(const Chunk &chunk) {
+	had_error = false;
 	this->chunk = chunk;
 	this->ip = this->chunk.code().begin();
 	this->ip_end = this->chunk.code().end();
