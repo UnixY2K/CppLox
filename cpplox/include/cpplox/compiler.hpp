@@ -62,6 +62,7 @@ class Compiler {
 	void emmitConstant(Value value);
 	void endCompiler();
 	void binary();
+	void literal();
 	void grouping();
 	void number();
 	void unary();

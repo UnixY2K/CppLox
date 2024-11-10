@@ -6,6 +6,7 @@ cpplox_srcs = [
     'src/debug.cpp',
     'src/scanner.cpp',
     'src/terminal.cpp',
+    'src/value.cpp',
     'src/vm.cpp',
 ]
 cpplox_args = []

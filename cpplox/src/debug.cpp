@@ -30,7 +30,8 @@ void ConstantInstruction(std::string_view name, const lox::Chunk &chunk,
 	std::cout << std::format(
 	    "{:<4} {} '", cli::terminal::cyan_colored(name),
 	    cli::terminal::yellow_colored(std::format("{:4d}", address)));
-	std::cout << cli::terminal::green_colored(std::format("{:g}", value));
+	std::cout << cli::terminal::green_colored(
+	    std::format("{}", valueToString(value)));
 	std::cout << "'\n";
 }
 
@@ -56,6 +57,18 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 	case OpCode::OP_CONSTANT:
 		ConstantInstruction("OP_CONSTANT", chunk, ip);
 		break;
+	case OpCode::OP_NIL:
+		return SimpleInstruction("OP_NIL", ip);
+	case OpCode::OP_TRUE:
+		return SimpleInstruction("OP_TRUE", ip);
+	case OpCode::OP_FALSE:
+		return SimpleInstruction("OP_FALSE", ip);
+	case OpCode::OP_EQUAL:
+		return SimpleInstruction("OP_EQUAL", ip);
+	case OpCode::OP_GREATER:
+		return SimpleInstruction("OP_GREATER", ip);
+	case OpCode::OP_LESS:
+		return SimpleInstruction("OP_LESS", ip);
 	case OpCode::OP_ADD:
 		return SimpleInstruction("OP_ADD", ip);
 	case OpCode::OP_SUBTRACT:
@@ -64,6 +77,8 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 		return SimpleInstruction("OP_MULTIPLY", ip);
 	case OpCode::OP_DIVIDE:
 		return SimpleInstruction("OP_DIVIDE", ip);
+	case OpCode::OP_NOT:
+		return SimpleInstruction("OP_NOT", ip);
 	case OpCode::OP_NEGATE:
 		return SimpleInstruction("OP_NEGATE", ip);
 	case OpCode::OP_RETURN:

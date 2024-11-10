@@ -5,7 +5,6 @@
 
 #include <cstddef>
 #include <format>
-#include <functional>
 #include <iostream>
 #include <vector>
 
@@ -33,24 +32,97 @@ void Compiler::initializeRules() {
 		Precedence precedence;
 	};
 
+	// Single-character tokens.
+
 	// TOKEN_LEFT_PAREN
 	rules[static_cast<size_t>(Token::TokenType::TOKEN_LEFT_PAREN)] = {
 	    &Compiler::grouping, nullptr, Precedence::PREC_NONE};
+	// TOKEN_RIGHT_PAREN
+	// TOKEN_LEFT_BRACE
+	// TOKEN_RIGHT_BRACE
+	// TOKEN_COMMA
+	// TOKEN_DOT
 	// TOKEN_MINUS
 	rules[static_cast<size_t>(Token::TokenType::TOKEN_MINUS)] = {
 	    &Compiler::unary, &Compiler::binary, Precedence::PREC_TERM};
 	// TOKEN_PLUS
 	rules[static_cast<size_t>(Token::TokenType::TOKEN_PLUS)] = {
 	    nullptr, &Compiler::binary, Precedence::PREC_TERM};
+	// TOKEN_SEMICOLON
 	// TOKEN_SLASH
 	rules[static_cast<size_t>(Token::TokenType::TOKEN_SLASH)] = {
 	    nullptr, &Compiler::binary, Precedence::PREC_FACTOR};
 	// TOKEN_STAR
 	rules[static_cast<size_t>(Token::TokenType::TOKEN_STAR)] = {
 	    nullptr, &Compiler::binary, Precedence::PREC_FACTOR};
+
+	// One or two character tokens.
+
+	// TOKEN_BANG
+	rules[static_cast<size_t>(Token::TokenType::TOKEN_BANG)] = {
+	    &Compiler::unary, nullptr, Precedence::PREC_NONE};
+	// TOKEN_BANG_EQUAL
+	rules[static_cast<size_t>(Token::TokenType::TOKEN_BANG_EQUAL)] = {
+	    nullptr, &Compiler::binary, Precedence::PREC_EQUALITY};
+	// TOKEN_EQUAL
+	// TOKEN_EQUAL_EQUAL
+	rules[static_cast<size_t>(Token::TokenType::TOKEN_EQUAL_EQUAL)] = {
+	    nullptr, &Compiler::binary, Precedence::PREC_EQUALITY};
+	// TOKEN_GREATER
+	rules[static_cast<size_t>(Token::TokenType::TOKEN_GREATER)] = {
+	    nullptr, &Compiler::binary, Precedence::PREC_COMPARISON};
+	// TOKEN_GREATER_EQUAL
+	rules[static_cast<size_t>(Token::TokenType::TOKEN_GREATER_EQUAL)] = {
+	    nullptr, &Compiler::binary, Precedence::PREC_COMPARISON};
+	// TOKEN_LESS
+	rules[static_cast<size_t>(Token::TokenType::TOKEN_LESS)] = {
+	    nullptr, &Compiler::binary, Precedence::PREC_COMPARISON};
+	// TOKEN_LESS_EQUAL
+	rules[static_cast<size_t>(Token::TokenType::TOKEN_LESS_EQUAL)] = {
+	    nullptr, &Compiler::binary, Precedence::PREC_COMPARISON};
+
+	// misc '?', ':'
+
+	// TOKEN_QUESTION
+	// TOKEN_COLON
+
+	// Literals.
+
+	// TOKEN_IDENTIFIER
+	// TOKEN_STRING
 	// TOKEN_NUMBER
 	rules[static_cast<size_t>(Token::TokenType::TOKEN_NUMBER)] = {
-	    &Compiler::number, NULL, Precedence::PREC_NONE};
+	    &Compiler::number, nullptr, Precedence::PREC_NONE};
+
+	// Literals.
+
+	// TOKEN_AND
+	// TOKEN_CLASS
+	// TOKEN_ELSE
+	// TOKEN_FALSE
+	rules[static_cast<size_t>(Token::TokenType::TOKEN_FALSE)] = {
+	    &Compiler::literal, nullptr, Precedence::PREC_NONE};
+	// TOKEN_FOR
+	// TOKEN_FUN
+	// TOKEN_IF
+	// TOKEN_NIL
+	rules[static_cast<size_t>(Token::TokenType::TOKEN_NIL)] = {
+	    &Compiler::literal, nullptr, Precedence::PREC_NONE};
+	// TOKEN_OR
+	// TOKEN_PRINT
+	// TOKEN_RETURN
+	// TOKEN_SUPER
+	// TOKEN_THIS
+	// TOKEN_TRUE
+	rules[static_cast<size_t>(Token::TokenType::TOKEN_TRUE)] = {
+	    &Compiler::literal, nullptr, Precedence::PREC_NONE};
+	// TOKEN_VAR
+	// TOKEN_WHILE
+	// TOKEN_CONTINUE
+	// TOKEN_BREAK
+
+	// TOKEN_ERROR
+	// TOKEN_EOF
 }
 
 void Compiler::errorAt(Token token, std::string_view message) {
@@ -145,12 +217,49 @@ void Compiler::endCompiler() {
 	emmitReturn();
 }
 
+void Compiler::literal() {
+	switch (parser.previous.type) {
+	case Token::TokenType::TOKEN_FALSE:
+		emmitByte(static_cast<std::byte>(OpCode::OP_FALSE));
+		break;
+	case Token::TokenType::TOKEN_NIL:
+		emmitByte(static_cast<std::byte>(OpCode::OP_NIL));
+		break;
+	case Token::TokenType::TOKEN_TRUE:
+		emmitByte(static_cast<std::byte>(OpCode::OP_TRUE));
+		break;
+	default:
+		return; // unreachable
+	}
+}
+
 void Compiler::binary() {
 	Token::TokenType operatorType = parser.previous.type;
 	ParseRule &rule = getRule(operatorType);
 	parsePrecedence(
 	    static_cast<Precedence>(static_cast<size_t>(rule.precedence) + 1));
 	switch (operatorType) {
+	case Token::TokenType::TOKEN_BANG_EQUAL:
+		emmitByte(static_cast<std::byte>(OpCode::OP_EQUAL));
+		emmitByte(static_cast<std::byte>(OpCode::OP_NOT));
+		break;
+	case Token::TokenType::TOKEN_EQUAL_EQUAL:
+		emmitByte(static_cast<std::byte>(OpCode::OP_EQUAL));
+		break;
+	case Token::TokenType::TOKEN_GREATER:
+		emmitByte(static_cast<std::byte>(OpCode::OP_GREATER));
+		break;
+	case Token::TokenType::TOKEN_GREATER_EQUAL:
+		emmitByte(static_cast<std::byte>(OpCode::OP_LESS));
+		emmitByte(static_cast<std::byte>(OpCode::OP_NOT));
+		break;
+	case Token::TokenType::TOKEN_LESS:
+		emmitByte(static_cast<std::byte>(OpCode::OP_LESS));
+		break;
+	case Token::TokenType::TOKEN_LESS_EQUAL:
+		emmitByte(static_cast<std::byte>(OpCode::OP_GREATER));
+		emmitByte(static_cast<std::byte>(OpCode::OP_NOT));
+		break;
 	case Token::TokenType::TOKEN_PLUS:
 		emmitByte(static_cast<std::byte>(OpCode::OP_ADD));
 		break;
@@ -193,6 +302,9 @@ void Compiler::unary() {
 	switch (operatorType) {
 	case Token::TokenType::TOKEN_MINUS:
 		emmitByte(static_cast<std::byte>(OpCode::OP_NEGATE));
+		break;
+	case Token::TokenType::TOKEN_BANG:
+		emmitByte(static_cast<std::byte>(OpCode::OP_NOT));
 		break;
 	default:
 		return; // unreachable

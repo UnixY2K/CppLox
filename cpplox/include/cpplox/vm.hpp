@@ -9,6 +9,8 @@ namespace lox {
 enum class InterpretResult { OK, COMPILE_ERROR, RUNTIME_ERROR };
 
 class VM {
+	void runtimeError(std::string_view message);
+
 	// gets the byte and increments the instruction pointer
 	std::byte readByte(std::span<const std::byte>::iterator &ip);
 	// increments the instruction pointer and then returns the current byte
