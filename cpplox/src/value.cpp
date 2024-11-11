@@ -12,7 +12,7 @@ std::string valueToString(const Value &value) {
 	std::visit(
 	    overloads{
 	        [&result](bool value) { result = std::format("{}", value); },
-	        [&result](double value) { result = std::format("{:g}", value); },
+	        [&result](double value) { result = std::format("{}", value); },
 	        [&result](const Obj &value) {
 		        result = std::format("{}", objToString(value));
 	        },
