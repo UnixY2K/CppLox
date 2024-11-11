@@ -67,12 +67,20 @@ class Compiler {
 	void literal();
 	void grouping();
 	void number();
+	void namedVariable(Token name);
+	void variable();
 	void string();
 	void unary();
 	void parsePrecedence(Precedence precedence);
+	size_t identifierConstant(Token name);
+	size_t parseVariable(std::string_view errorMessage);
+	void defineVariable(size_t global);
 	ParseRule &getRule(Token::TokenType type);
 	void expression();
+	void varDeclaration();
+	void expressionStatement();
 	void printStatement();
+	void synchronize();
 	void declaration();
 	void statement();
 

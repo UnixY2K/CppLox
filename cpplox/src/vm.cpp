@@ -1,3 +1,4 @@
+#include "cpplox/obj.hpp"
 #include <cpplox/chunk.hpp>
 #include <cpplox/compiler.hpp>
 #include <cpplox/debug.hpp>
@@ -8,6 +9,7 @@
 #include <cstdint>
 #include <format>
 #include <iostream>
+#include <string_view>
 #include <variant>
 
 namespace lox {
@@ -141,7 +143,8 @@ Value VM::readConstant(std::span<const std::byte>::iterator &ip) {
 	auto instruction = static_cast<lox::OpCode>(*(ip));
 	size_t address = static_cast<uint8_t>(nextByte(ip));
 	[[unlikely]]
-	if (instruction == OpCode::OP_CONSTANT_LONG) {
+	if (instruction == OpCode::OP_CONSTANT_LONG ||
+	    instruction == OpCode::OP_DEFINE_GLOBAL_LONG) {
 		address = address << 8 | static_cast<uint8_t>(nextByte(ip));
 	}
 	return chunk.constants()[address];
@@ -178,6 +181,38 @@ InterpretResult VM::run() {
 		case OpCode::OP_FALSE:
 			stack.push_back(false);
 			break;
+		case OpCode::OP_POP: {
+			if (stack.empty()) {
+				runtimeError("Stack underflow.");
+				return InterpretResult::RUNTIME_ERROR;
+			}
+			stack.pop_back();
+			break;
+		}
+		case OpCode::OP_GET_GLOBAL_LONG:
+		case OpCode::OP_GET_GLOBAL: {
+			Value value = readConstant(ip);
+			std::string name = valueToString(value);
+			if (auto it = globals.find(name); it != globals.end()) {
+				stack.push_back(it->second);
+			} else {
+				runtimeError(std::format("Undefined variable '{}'", name));
+				return InterpretResult::RUNTIME_ERROR;
+			}
+			break;
+		}
+		case OpCode::OP_DEFINE_GLOBAL_LONG:
+		case OpCode::OP_DEFINE_GLOBAL: {
+			Value value = readConstant(ip);
+			std::string name = valueToString(value);
+			if (stack.empty()) {
+				runtimeError("Stack underflow.");
+				return InterpretResult::RUNTIME_ERROR;
+			}
+			globals[name] = stack.back();
+			stack.pop_back();
+			break;
+		}
 		case OpCode::OP_EQUAL:
 		case OpCode::OP_NOT_EQUAL:
 		case OpCode::OP_GREATER:
@@ -187,10 +222,20 @@ InterpretResult VM::run() {
 		case OpCode::OP_ADD:
 		case OpCode::OP_SUBTRACT:
 		case OpCode::OP_MULTIPLY:
-		case OpCode::OP_DIVIDE:
+		case OpCode::OP_DIVIDE: {
+			// check that there is at least 2 elements in the stack
+			if (stack.size() < 2) {
+				runtimeError("Stack underflow.");
+				return InterpretResult::RUNTIME_ERROR;
+			}
 			binaryOp(ip);
 			break;
+		}
 		case lox::OpCode::OP_NEGATE: {
+			if (stack.empty()) {
+				runtimeError("Stack underflow.");
+				return InterpretResult::RUNTIME_ERROR;
+			}
 			auto &value = stack.back();
 			if (!std::holds_alternative<double>(value)) {
 				runtimeError("Operand must be a number.");
@@ -200,11 +245,19 @@ InterpretResult VM::run() {
 			break;
 		}
 		case OpCode::OP_NOT: {
+			if (stack.empty()) {
+				runtimeError("Stack underflow.");
+				return InterpretResult::RUNTIME_ERROR;
+			}
 			auto &value = stack.back();
 			value = !isTruthy(value);
 			break;
 		}
 		case OpCode::OP_PRINT: {
+			if (stack.empty()) {
+				runtimeError("Stack underflow.");
+				return InterpretResult::RUNTIME_ERROR;
+			}
 			std::cout << std::format("{}\n", valueToString(stack.back()));
 			stack.pop_back();
 			break;

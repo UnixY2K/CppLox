@@ -94,6 +94,8 @@ void Compiler::initializeRules() {
 	// Literals.
 
 	// TOKEN_IDENTIFIER
+	rules[static_cast<size_t>(Token::TokenType::TOKEN_IDENTIFIER)] = {
+	    &Compiler::variable, nullptr, Precedence::PREC_NONE};
 	// TOKEN_STRING
 	rules[static_cast<size_t>(Token::TokenType::TOKEN_STRING)] = {
 	    &Compiler::string, nullptr, Precedence::PREC_NONE};
@@ -162,7 +164,7 @@ void Compiler::advance() {
 	parser.previous = parser.current;
 	while (true) {
 		parser.current = scanner.scanToken();
-		if (parser.current.type != Token::TokenType::TOKEN_ERROR) {
+		if (!check(Token::TokenType::TOKEN_ERROR)) {
 			break;
 		}
 		errorAtCurrent(parser.current.lexeme);
@@ -170,7 +172,7 @@ void Compiler::advance() {
 }
 
 void Compiler::consume(Token::TokenType type, std::string_view message) {
-	if (parser.current.type == type) {
+	if (check(type)) {
 		advance();
 		return;
 	}
@@ -325,6 +327,26 @@ void Compiler::number() {
 	emmitConstant(value);
 }
 
+void Compiler::namedVariable(Token name) {
+	size_t arg = identifierConstant(name);
+	// depending on the size we use OP_GET_GLOBAL or OP_GET_GLOBAL_LONG
+	auto opcode =
+	    arg > UINT8_MAX ? OpCode::OP_GET_GLOBAL_LONG : OpCode::OP_GET_GLOBAL;
+	if (arg > UINT16_MAX) {
+		error("Too many variables in one chunk");
+		return;
+	}
+	std::vector<std::byte> bytes;
+	bytes.push_back(static_cast<std::byte>(opcode));
+	if (opcode == OpCode::OP_GET_GLOBAL_LONG) {
+		bytes.push_back(static_cast<std::byte>(arg >> 8));
+	}
+	bytes.push_back(static_cast<std::byte>(arg & 0xff));
+	emmitBytes(bytes);
+}
+
+void Compiler::variable() { namedVariable(parser.previous); }
+
 void Compiler::string() {
 	// remove the quotes from the string
 	auto str =
@@ -365,11 +387,68 @@ void Compiler::parsePrecedence(Precedence precedence) {
 	}
 }
 
+size_t Compiler::identifierConstant(Token name) {
+	std::vector<std::byte> value = makeConstant(stringToValue(name.lexeme));
+	// we reconstruct the bytes to an size_t
+	// ignore the first bythe which is the opcode
+	value.erase(value.begin());
+	// then check that we did not exeed the size_t limit
+	if (value.size() > sizeof(size_t)) {
+		error("Too many constants in one chunk");
+		return 0;
+	}
+	size_t index = 0;
+	for (auto byte : value) {
+		index = (index << 8) | static_cast<size_t>(byte);
+	}
+	return index;
+}
+
+size_t Compiler::parseVariable(std::string_view errorMessage) {
+	consume(Token::TokenType::TOKEN_IDENTIFIER, errorMessage);
+	return identifierConstant(parser.previous);
+}
+
+void Compiler::defineVariable(size_t global) {
+	// depending on the size we use OP_DEFINE_GLOBAL or OP_DEFINE_GLOBAL_LONG
+	auto opcode = global > UINT8_MAX ? OpCode::OP_DEFINE_GLOBAL_LONG
+	                                 : OpCode::OP_DEFINE_GLOBAL;
+	if (global > UINT16_MAX) {
+		error("Too many variables in one chunk");
+		return;
+	}
+	std::vector<std::byte> bytes;
+	bytes.push_back(static_cast<std::byte>(opcode));
+	if (opcode == OpCode::OP_DEFINE_GLOBAL_LONG) {
+		bytes.push_back(static_cast<std::byte>(global >> 8));
+	}
+	bytes.push_back(static_cast<std::byte>(global & 0xff));
+	emmitBytes(bytes);
+}
+
 Compiler::ParseRule &Compiler::getRule(Token::TokenType type) {
 	return getRules()[static_cast<size_t>(type)];
 }
 
 void Compiler::expression() { parsePrecedence(Precedence::PREC_ASSIGNMENT); }
+
+void Compiler::varDeclaration() {
+	size_t global = parseVariable("Expect variable name");
+	if (match(Token::TokenType::TOKEN_EQUAL)) {
+		expression();
+	} else {
+		emmitByte(static_cast<std::byte>(OpCode::OP_NIL));
+	}
+	consume(Token::TokenType::TOKEN_SEMICOLON,
+	        "Expect ';' after variable declaration");
+	defineVariable(global);
+}
+
+void Compiler::expressionStatement() {
+	expression();
+	consume(Token::TokenType::TOKEN_SEMICOLON, "Expect ';' after expression");
+	emmitByte(static_cast<std::byte>(OpCode::OP_POP));
+}
 
 void Compiler::printStatement() {
 	expression();
@@ -377,11 +456,47 @@ void Compiler::printStatement() {
 	emmitByte(static_cast<std::byte>(OpCode::OP_PRINT));
 }
 
-void Compiler::declaration() { statement(); }
+void Compiler::synchronize() {
+	parser.panicMode = false;
+
+	while (!check(Token::TokenType::TOKEN_EOF)) {
+		if (parser.previous.type == Token::TokenType::TOKEN_SEMICOLON) {
+			return;
+		}
+		switch (parser.current.type) {
+		case Token::TokenType::TOKEN_CLASS:
+		case Token::TokenType::TOKEN_FUN:
+		case Token::TokenType::TOKEN_VAR:
+		case Token::TokenType::TOKEN_FOR:
+		case Token::TokenType::TOKEN_IF:
+		case Token::TokenType::TOKEN_WHILE:
+		case Token::TokenType::TOKEN_PRINT:
+		case Token::TokenType::TOKEN_RETURN:
+			return;
+
+		default:; // Do nothing.
+		}
+		advance();
+	}
+}
+
+void Compiler::declaration() {
+	if (match(Token::TokenType::TOKEN_VAR)) {
+		varDeclaration();
+	} else {
+		statement();
+	}
+
+	if (parser.panicMode) {
+		synchronize();
+	}
+}
 
 void Compiler::statement() {
 	if (match(Token::TokenType::TOKEN_PRINT)) {
 		printStatement();
+	} else {
+		expressionStatement();
 	}
 }
 

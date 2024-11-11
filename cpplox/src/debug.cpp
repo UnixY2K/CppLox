@@ -23,7 +23,8 @@ void ConstantInstruction(std::string_view name, const lox::Chunk &chunk,
 	auto instruction = static_cast<lox::OpCode>(*ip);
 	size_t address = static_cast<uint8_t>(nextByte(ip));
 	[[unlikely]]
-	if (instruction == OpCode::OP_CONSTANT_LONG) {
+	if (instruction == OpCode::OP_CONSTANT_LONG ||
+	    instruction == OpCode::OP_DEFINE_GLOBAL_LONG) {
 		address = address << 8 | static_cast<uint8_t>(nextByte(ip));
 	}
 	Value value = chunk.constants()[address];
@@ -55,6 +56,8 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 
 	switch (instruction) {
 	case OpCode::OP_CONSTANT_LONG:
+		ConstantInstruction("OP_CONSTANT_LONG", chunk, ip);
+		break;
 	case OpCode::OP_CONSTANT:
 		ConstantInstruction("OP_CONSTANT", chunk, ip);
 		break;
@@ -64,6 +67,20 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 		return SimpleInstruction("OP_TRUE", ip);
 	case OpCode::OP_FALSE:
 		return SimpleInstruction("OP_FALSE", ip);
+	case OpCode::OP_POP:
+		return SimpleInstruction("OP_POP", ip);
+	case OpCode::OP_GET_GLOBAL_LONG:
+		ConstantInstruction("OP_GET_GLOBAL_LONG", chunk, ip);
+		break;
+	case OpCode::OP_GET_GLOBAL:
+		ConstantInstruction("OP_GET_GLOBAL", chunk, ip);
+		break;
+	case OpCode::OP_DEFINE_GLOBAL_LONG:
+		ConstantInstruction("OP_DEFINE_GLOBAL_LONG", chunk, ip);
+		break;
+	case OpCode::OP_DEFINE_GLOBAL:
+		ConstantInstruction("OP_DEFINE_GLOBAL", chunk, ip);
+		break;
 	case OpCode::OP_EQUAL:
 		return SimpleInstruction("OP_EQUAL", ip);
 	case OpCode::OP_NOT_EQUAL:

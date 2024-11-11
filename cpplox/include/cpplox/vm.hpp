@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <string_view>
+#include <unordered_map>
 
 namespace lox {
 enum class InterpretResult { OK, COMPILE_ERROR, RUNTIME_ERROR };
@@ -33,6 +34,7 @@ class VM {
 	bool had_error = false;
 	Chunk chunk;
 	std::vector<Value> stack;
+	std::unordered_map<std::string, Value> globals;
 	std::span<const std::byte>::iterator ip;
 	std::span<const std::byte>::iterator ip_end;
 };
