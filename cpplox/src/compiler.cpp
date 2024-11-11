@@ -9,6 +9,9 @@
 #include <format>
 #include <iostream>
 #include <vector>
+#if defined(__APPLE__) && defined(__clang__)
+#include <cstdio>
+#endif
 
 namespace lox {
 
@@ -285,6 +288,20 @@ void Compiler::grouping() {
 
 void Compiler::number() {
 	double value;
+// apparently for apple clang 16, there is not support for std::from_chars
+// for float types, so we use sscanf as a fallback instead
+#if defined(__APPLE__) && defined(__clang__)
+	// use sscanf instead
+	int lenght = parser.previous.lexeme.length();
+	std::string format = std::format("%{}lf%n", lenght);
+	int read;
+	bool result = sscanf(parser.previous.lexeme.data(), format.c_str(), &value,
+	                     &read) == 1;
+	if (!result || read != lenght) {
+		error(std::format("Invalid number '{}'", parser.previous.lexeme));
+		return;
+	}
+#else
 	auto result = std::from_chars(
 	    parser.previous.lexeme.data(),
 	    parser.previous.lexeme.data() + parser.previous.lexeme.size(), value);
@@ -292,6 +309,7 @@ void Compiler::number() {
 		error(std::format("Invalid number '{}'", parser.previous.lexeme));
 		return;
 	}
+#endif
 	emmitConstant(value);
 }
 
