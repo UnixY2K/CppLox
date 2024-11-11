@@ -177,6 +177,18 @@ void Compiler::consume(Token::TokenType type, std::string_view message) {
 	errorAtCurrent(message);
 }
 
+bool Compiler::check(Token::TokenType type) {
+	return parser.current.type == type;
+}
+
+bool Compiler::match(Token::TokenType type) {
+	if (!check(type)) {
+		return false;
+	}
+	advance();
+	return true;
+}
+
 void Compiler::emmitByte(std::byte byte) {
 	chunk.write(byte, parser.previous.line);
 }
@@ -359,6 +371,20 @@ Compiler::ParseRule &Compiler::getRule(Token::TokenType type) {
 
 void Compiler::expression() { parsePrecedence(Precedence::PREC_ASSIGNMENT); }
 
+void Compiler::printStatement() {
+	expression();
+	consume(Token::TokenType::TOKEN_SEMICOLON, "Expect ';' after value");
+	emmitByte(static_cast<std::byte>(OpCode::OP_PRINT));
+}
+
+void Compiler::declaration() { statement(); }
+
+void Compiler::statement() {
+	if (match(Token::TokenType::TOKEN_PRINT)) {
+		printStatement();
+	}
+}
+
 auto Compiler::compile(std::string_view source)
     -> std::expected<Chunk, std::string> {
 	// reset the compiler state
@@ -366,12 +392,11 @@ auto Compiler::compile(std::string_view source)
 	chunk = Chunk{};
 	scanner = Scanner{source};
 	advance();
-	// if the token is EOF we have an empty program, so we return an empty chunk
-	if (parser.current.type == Token::TokenType::TOKEN_EOF) {
-		return chunk;
+
+	while (!match(Token::TokenType::TOKEN_EOF)) {
+		declaration();
 	}
-	expression();
-	consume(Token::TokenType::TOKEN_EOF, "Expect end of expression");
+
 	endCompiler();
 	return parser.hadError ? std::unexpected("Compilation error")
 	                       : std::expected<Chunk, std::string>{chunk};

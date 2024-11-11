@@ -152,11 +152,13 @@ InterpretResult VM::run() {
 	for (auto ip = code.begin(); ip != code.end(); ip++) {
 		if (debug_trace_instruction) {
 			auto it = ip;
-			std::cout << "		  ";
-			for (auto slot : stack) {
-				std::cout << std::format("[ {} ]", valueToString(slot));
+			if (debug_stack) {
+				std::cout << "		  ";
+				for (auto slot : stack) {
+					std::cout << std::format("[ {} ]", valueToString(slot));
+				}
+				std::cout << "\n";
 			}
-			std::cout << "\n";
 			debug::InstructionDisassembly(chunk, it);
 		}
 		auto instruction = static_cast<lox::OpCode>(peekByte(ip));
@@ -202,15 +204,12 @@ InterpretResult VM::run() {
 			value = !isTruthy(value);
 			break;
 		}
+		case OpCode::OP_PRINT: {
+			std::cout << std::format("{}\n", valueToString(stack.back()));
+			stack.pop_back();
+			break;
+		}
 		case OpCode::OP_RETURN: {
-			// check if stack is empty
-			if (!stack.empty()) {
-				std::cout << std::format("{}\n", valueToString(stack.back()));
-				stack.pop_back();
-			} else {
-				runtimeError("tried to return from an empty stack");
-			}
-			return InterpretResult::OK;
 		}
 		}
 		if (had_error) {

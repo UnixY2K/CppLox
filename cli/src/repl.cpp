@@ -52,6 +52,11 @@ void repl() {
 					std::cout << std::format(
 					    "Debug trace is {}\n",
 					    vm.debug_trace_instruction ? "on" : "off");
+				} else if (line == "#debug_stack") {
+					vm.debug_stack = !vm.debug_stack;
+					std::cout << std::format("Debug stack is {}\n",
+					                         vm.debug_stack ? "on" : "off");
+
 				} else {
 					std::cout << "Unknown command\n";
 				}

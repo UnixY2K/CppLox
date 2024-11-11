@@ -13,6 +13,8 @@ std::string yellow_colored(std::string_view message);
 
 std::string green_colored(std::string_view message);
 
+std::string orange_colored(std::string_view message);
+
 void logError(std::string_view message);
 
 } // namespace lox::cli::terminal

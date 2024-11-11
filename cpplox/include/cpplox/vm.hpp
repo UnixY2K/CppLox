@@ -24,10 +24,10 @@ class VM {
 	InterpretResult run();
 
   public:
-	VM(bool debug_trace = false) : debug_trace_instruction(debug_trace) {}
 	InterpretResult interpret(const Chunk &chunk);
 	InterpretResult interpret(std::string_view source);
 	bool debug_trace_instruction;
+	bool debug_stack;
 
   private:
 	bool had_error = false;

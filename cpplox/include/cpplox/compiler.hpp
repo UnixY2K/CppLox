@@ -55,6 +55,8 @@ class Compiler {
 	void errorAtCurrent(std::string_view message);
 	void advance();
 	void consume(Token::TokenType type, std::string_view message);
+	bool check(Token::TokenType type);
+	bool match(Token::TokenType type);
 	void emmitByte(std::byte byte);
 	void emmitBytes(std::span<std::byte> bytes);
 	void emmitReturn();
@@ -70,6 +72,9 @@ class Compiler {
 	void parsePrecedence(Precedence precedence);
 	ParseRule &getRule(Token::TokenType type);
 	void expression();
+	void printStatement();
+	void declaration();
+	void statement();
 
   public:
 	Compiler();

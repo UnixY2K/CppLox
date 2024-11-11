@@ -44,7 +44,8 @@ void InstructionDisassembly(const lox::Chunk &chunk,
                             std::span<const std::byte>::iterator &ip) {
 	auto address = std::distance(chunk.code().begin(), ip);
 	size_t offset = address;
-	std::cout << std::format("{:#04d} ", offset);
+	std::cout << std::format("{}{}", cli::terminal::orange_colored("#"),
+	                         std::format("{:04d} ", offset));
 	auto instruction = static_cast<lox::OpCode>(peekByte(ip));
 	if (offset > 0 && chunk.getLine(offset) == chunk.getLine(offset - 1)) {
 		std::cout << std::format("   | ");
@@ -87,6 +88,8 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 		return SimpleInstruction("OP_NOT", ip);
 	case OpCode::OP_NEGATE:
 		return SimpleInstruction("OP_NEGATE", ip);
+	case OpCode::OP_PRINT:
+		return SimpleInstruction("OP_PRINT", ip);
 	case OpCode::OP_RETURN:
 		return SimpleInstruction("OP_RETURN", ip);
 	default:

@@ -23,6 +23,10 @@ std::string green_colored(std::string_view message) {
 	return std::format("\033[32m{}\033[0m", message);
 }
 
+std::string orange_colored(std::string_view message) {
+	return std::format("\033[33m\033[38;5;202m{}\033[0m", message);
+}
+
 void logError(std::string_view message) {
 	std::cerr << std::format("{}\n", red_colored(message));
 }
