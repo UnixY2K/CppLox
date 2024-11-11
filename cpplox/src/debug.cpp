@@ -81,6 +81,12 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 	case OpCode::OP_DEFINE_GLOBAL:
 		ConstantInstruction("OP_DEFINE_GLOBAL", chunk, ip);
 		break;
+	case OpCode::OP_SET_GLOBAL_LONG:
+		ConstantInstruction("OP_SET_GLOBAL_LONG", chunk, ip);
+		break;
+	case OpCode::OP_SET_GLOBAL:
+		ConstantInstruction("OP_SET_GLOBAL", chunk, ip);
+		break;
 	case OpCode::OP_EQUAL:
 		return SimpleInstruction("OP_EQUAL", ip);
 	case OpCode::OP_NOT_EQUAL:

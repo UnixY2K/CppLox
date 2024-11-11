@@ -28,7 +28,7 @@ class Compiler {
 	};
 
 	// virtual class for parsing rules
-	using ParseFn = void (Compiler::*)();
+	using ParseFn = void (Compiler::*)(bool canAssign);
 	struct ParseRule {
 		ParseFn prefix = nullptr;
 		ParseFn infix = nullptr;
@@ -63,14 +63,14 @@ class Compiler {
 	std::vector<std::byte> makeConstant(Value value);
 	void emmitConstant(Value value);
 	void endCompiler();
-	void binary();
-	void literal();
-	void grouping();
-	void number();
-	void namedVariable(Token name);
-	void variable();
-	void string();
-	void unary();
+	void binary(bool canAssign);
+	void literal(bool canAssign);
+	void grouping(bool canAssign);
+	void number(bool canAssign);
+	void namedVariable(Token name, bool canAssign);
+	void variable(bool canAssign);
+	void string(bool canAssign);
+	void unary(bool canAssign);
 	void parsePrecedence(Precedence precedence);
 	size_t identifierConstant(Token name);
 	size_t parseVariable(std::string_view errorMessage);

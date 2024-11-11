@@ -213,6 +213,18 @@ InterpretResult VM::run() {
 			stack.pop_back();
 			break;
 		}
+		case OpCode::OP_SET_GLOBAL_LONG:
+		case OpCode::OP_SET_GLOBAL: {
+			Value value = readConstant(ip);
+			std::string name = valueToString(value);
+			if (auto it = globals.find(name); it != globals.end()) {
+				globals[name] = stack.back();
+			} else {
+				runtimeError(std::format("Undefined variable '{}'", name));
+				return InterpretResult::RUNTIME_ERROR;
+			}
+			break;
+		}
 		case OpCode::OP_EQUAL:
 		case OpCode::OP_NOT_EQUAL:
 		case OpCode::OP_GREATER:

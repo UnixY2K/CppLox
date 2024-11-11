@@ -238,7 +238,7 @@ void Compiler::endCompiler() {
 	emmitReturn();
 }
 
-void Compiler::literal() {
+void Compiler::literal(bool canAssign) {
 	switch (parser.previous.type) {
 	case Token::TokenType::TOKEN_FALSE:
 		emmitByte(static_cast<std::byte>(OpCode::OP_FALSE));
@@ -254,7 +254,7 @@ void Compiler::literal() {
 	}
 }
 
-void Compiler::binary() {
+void Compiler::binary(bool canAssign) {
 	Token::TokenType operatorType = parser.previous.type;
 	ParseRule &rule = getRule(operatorType);
 	parsePrecedence(
@@ -295,12 +295,12 @@ void Compiler::binary() {
 	}
 }
 
-void Compiler::grouping() {
+void Compiler::grouping(bool canAssign) {
 	expression();
 	consume(Token::TokenType::TOKEN_RIGHT_PAREN, "Expect ')' after expression");
 }
 
-void Compiler::number() {
+void Compiler::number(bool canAssign) {
 	double value;
 // apparently for apple clang 16, there is not support for std::from_chars
 // for float types, so we use sscanf as a fallback instead
@@ -327,16 +327,26 @@ void Compiler::number() {
 	emmitConstant(value);
 }
 
-void Compiler::namedVariable(Token name) {
+void Compiler::namedVariable(Token name, bool canAssign) {
 	size_t arg = identifierConstant(name);
+	std::vector<std::byte> bytes;
 	// depending on the size we use OP_GET_GLOBAL or OP_GET_GLOBAL_LONG
-	auto opcode =
-	    arg > UINT8_MAX ? OpCode::OP_GET_GLOBAL_LONG : OpCode::OP_GET_GLOBAL;
+
 	if (arg > UINT16_MAX) {
 		error("Too many variables in one chunk");
 		return;
 	}
-	std::vector<std::byte> bytes;
+
+	OpCode opcode;
+	if (canAssign && match(Token::TokenType::TOKEN_EQUAL)) {
+		expression();
+		opcode = arg > UINT8_MAX ? OpCode::OP_SET_GLOBAL_LONG
+		                         : OpCode::OP_SET_GLOBAL;
+	} else {
+		opcode = arg > UINT8_MAX ? OpCode::OP_GET_GLOBAL_LONG
+		                         : OpCode::OP_GET_GLOBAL;
+	}
+
 	bytes.push_back(static_cast<std::byte>(opcode));
 	if (opcode == OpCode::OP_GET_GLOBAL_LONG) {
 		bytes.push_back(static_cast<std::byte>(arg >> 8));
@@ -345,16 +355,18 @@ void Compiler::namedVariable(Token name) {
 	emmitBytes(bytes);
 }
 
-void Compiler::variable() { namedVariable(parser.previous); }
+void Compiler::variable(bool canAssign) {
+	namedVariable(parser.previous, canAssign);
+}
 
-void Compiler::string() {
+void Compiler::string(bool canAssign) {
 	// remove the quotes from the string
 	auto str =
 	    parser.previous.lexeme.substr(1, parser.previous.lexeme.size() - 2);
 	emmitConstant(stringToValue(str));
 }
 
-void Compiler::unary() {
+void Compiler::unary(bool canAssign) {
 	Token::TokenType operatorType = parser.previous.type;
 	// compile the operand
 	parsePrecedence(Precedence::PREC_UNARY);
@@ -378,12 +390,18 @@ void Compiler::parsePrecedence(Precedence precedence) {
 		error("Expect expression");
 		return;
 	}
-	(this->*prefixRule)();
+
+	bool canAssign = precedence <= Precedence::PREC_ASSIGNMENT;
+	(this->*prefixRule)(canAssign);
 
 	while (precedence <= getRule(parser.current.type).precedence) {
 		advance();
 		auto infixRule = getRule(parser.previous.type).infix;
-		(this->*infixRule)();
+		(this->*infixRule)(canAssign);
+	}
+
+	if (canAssign && match(Token::TokenType::TOKEN_EQUAL)) {
+		error("Invalid assignment target");
 	}
 }
 
