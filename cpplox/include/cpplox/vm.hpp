@@ -27,8 +27,8 @@ class VM {
   public:
 	InterpretResult interpret(const Chunk &chunk);
 	InterpretResult interpret(std::string_view source);
-	bool debug_trace_instruction;
-	bool debug_stack;
+	bool debug_trace_instruction = false;
+	bool debug_stack = false;
 
   private:
 	bool had_error = false;

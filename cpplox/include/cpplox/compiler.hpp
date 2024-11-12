@@ -2,6 +2,7 @@
 #include <cpplox/chunk.hpp>
 #include <cpplox/scanner.hpp>
 
+#include <array>
 #include <cstddef>
 #include <expected>
 #include <string>

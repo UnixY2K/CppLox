@@ -5,10 +5,12 @@
 #include <cpplox/scanner.hpp>
 #include <cpplox/value.hpp>
 
+#include <charconv>
 #include <cstddef>
 #include <format>
 #include <iostream>
 #include <vector>
+
 #if defined(__APPLE__) && defined(__clang__)
 #include <cstdio>
 #endif
