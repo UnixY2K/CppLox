@@ -5,7 +5,6 @@
 #include <cpplox/scanner.hpp>
 #include <cpplox/value.hpp>
 
-#include <charconv>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -15,6 +14,8 @@
 
 #if defined(__APPLE__) && defined(__clang__)
 #include <cstdio>
+#else
+#include <charconv>
 #endif
 
 namespace lox {
