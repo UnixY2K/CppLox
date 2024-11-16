@@ -51,6 +51,17 @@ class Compiler {
 		bool panicMode = false;
 	};
 
+	struct Local {
+		Token name;
+		size_t depth;
+		bool initialized = false;
+	};
+
+	struct CompilerScope {
+		size_t depth = 0;
+		std::vector<Local> locals;
+	};
+
 	void errorAt(Token token, std::string_view message);
 	void error(std::string_view message);
 	void errorAtCurrent(std::string_view message);
@@ -64,6 +75,8 @@ class Compiler {
 	std::vector<std::byte> makeConstant(Value value);
 	void emmitConstant(Value value);
 	void endCompiler();
+	void beginScope();
+	void endScope();
 	void binary(bool canAssign);
 	void literal(bool canAssign);
 	void grouping(bool canAssign);
@@ -74,10 +87,16 @@ class Compiler {
 	void unary(bool canAssign);
 	void parsePrecedence(Precedence precedence);
 	size_t identifierConstant(Token name);
+	bool identifiersEqual(const Token &a, const Token &b);
+	int resolveLocal(const Token& name);
+	void addLocal(Token name);
+	void declareVariable();
 	size_t parseVariable(std::string_view errorMessage);
+	void markInitialized();
 	void defineVariable(size_t global);
 	ParseRule &getRule(Token::TokenType type);
 	void expression();
+	void block();
 	void varDeclaration();
 	void expressionStatement();
 	void printStatement();
@@ -95,6 +114,7 @@ class Compiler {
 	Parser parser;
 	Scanner scanner;
 	Chunk chunk;
+	CompilerScope scope;
 };
 
 } // namespace lox

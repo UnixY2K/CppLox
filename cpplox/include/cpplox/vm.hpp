@@ -21,6 +21,7 @@ class VM {
 
 	void binaryOp(std::span<const std::byte>::iterator &ip);
 
+	size_t readIndex(std::span<const std::byte>::iterator &ip);
 	Value readConstant(std::span<const std::byte>::iterator &ip);
 	InterpretResult run();
 

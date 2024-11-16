@@ -7,8 +7,10 @@
 
 #include <charconv>
 #include <cstddef>
+#include <cstdint>
 #include <format>
 #include <iostream>
+#include <ranges>
 #include <vector>
 
 #if defined(__APPLE__) && defined(__clang__)
@@ -240,6 +242,17 @@ void Compiler::endCompiler() {
 	emmitReturn();
 }
 
+void Compiler::beginScope() { scope.depth++; }
+
+void Compiler::endScope() {
+	scope.depth--;
+
+	while (!scope.locals.empty() && scope.locals.back().depth > scope.depth) {
+		emmitByte(static_cast<std::byte>(OpCode::OP_POP));
+		scope.locals.pop_back();
+	}
+}
+
 void Compiler::literal(bool canAssign) {
 	switch (parser.previous.type) {
 	case Token::TokenType::TOKEN_FALSE:
@@ -330,23 +343,34 @@ void Compiler::number(bool canAssign) {
 }
 
 void Compiler::namedVariable(Token name, bool canAssign) {
-	size_t arg = identifierConstant(name);
 	std::vector<std::byte> bytes;
+	OpCode getOp, setOp;
+	int arg = resolveLocal(name);
 	// depending on the size we use OP_GET_GLOBAL or OP_GET_GLOBAL_LONG
-
 	if (arg > UINT16_MAX) {
 		error("Too many variables in one chunk");
 		return;
 	}
 
+	if (arg != -1) {
+		getOp =
+		    arg > UINT8_MAX ? OpCode::OP_GET_LOCAL_LONG : OpCode::OP_GET_LOCAL;
+		setOp =
+		    arg > UINT8_MAX ? OpCode::OP_SET_LOCAL_LONG : OpCode::OP_SET_LOCAL;
+	} else {
+		arg = identifierConstant(name);
+		getOp = arg > UINT8_MAX ? OpCode::OP_GET_GLOBAL_LONG
+		                        : OpCode::OP_GET_GLOBAL;
+		setOp = arg > UINT8_MAX ? OpCode::OP_SET_GLOBAL_LONG
+		                        : OpCode::OP_SET_GLOBAL;
+	}
+
 	OpCode opcode;
 	if (canAssign && match(Token::TokenType::TOKEN_EQUAL)) {
 		expression();
-		opcode = arg > UINT8_MAX ? OpCode::OP_SET_GLOBAL_LONG
-		                         : OpCode::OP_SET_GLOBAL;
+		opcode = setOp;
 	} else {
-		opcode = arg > UINT8_MAX ? OpCode::OP_GET_GLOBAL_LONG
-		                         : OpCode::OP_GET_GLOBAL;
+		opcode = getOp;
 	}
 
 	bytes.push_back(static_cast<std::byte>(opcode));
@@ -424,12 +448,68 @@ size_t Compiler::identifierConstant(Token name) {
 	return index;
 }
 
+bool Compiler::identifiersEqual(const Token &a, const Token &b) {
+	return a.lexeme == b.lexeme;
+}
+
+int Compiler::resolveLocal(const Token &token) {
+
+	size_t i = 0;
+	for (const auto local : scope.locals | std::views::reverse) {
+		if (identifiersEqual(local.name, token)) {
+			if (!local.initialized) {
+				error("Can't read local variable in its own initializer.");
+			}
+			return scope.locals.size() - ++i;
+		}
+		i++;
+	}
+	return -1;
+}
+
+void Compiler::addLocal(Token name) {
+	if (scope.locals.size() == UINT16_MAX) {
+		error("Too many local variables in function");
+		return;
+	}
+
+	scope.locals.emplace_back(Local{.name = name, .depth = scope.depth});
+}
+
+void Compiler::declareVariable() {
+	if (scope.depth == 0) {
+		return;
+	}
+	Token &name = parser.previous;
+	for (const auto &local : scope.locals) {
+		if (local.depth != -1 && local.depth < scope.depth) {
+			break;
+		}
+		if (identifiersEqual(name, local.name)) {
+			error("Already a variable with this name in this scope.");
+		}
+	}
+	addLocal(name);
+}
+
 size_t Compiler::parseVariable(std::string_view errorMessage) {
 	consume(Token::TokenType::TOKEN_IDENTIFIER, errorMessage);
+	declareVariable();
+	if (scope.depth > 0) {
+		return 0;
+	}
 	return identifierConstant(parser.previous);
 }
 
+void Compiler::markInitialized() { scope.locals.back().initialized = true; }
+
 void Compiler::defineVariable(size_t global) {
+	// check if we are in the global scope
+	if (scope.depth > 0) {
+		markInitialized();
+		return;
+	}
+
 	// depending on the size we use OP_DEFINE_GLOBAL or OP_DEFINE_GLOBAL_LONG
 	auto opcode = global > UINT8_MAX ? OpCode::OP_DEFINE_GLOBAL_LONG
 	                                 : OpCode::OP_DEFINE_GLOBAL;
@@ -451,6 +531,14 @@ Compiler::ParseRule &Compiler::getRule(Token::TokenType type) {
 }
 
 void Compiler::expression() { parsePrecedence(Precedence::PREC_ASSIGNMENT); }
+
+void Compiler::block() {
+	while (!check(Token::TokenType::TOKEN_RIGHT_BRACE) &&
+	       !check(Token::TokenType::TOKEN_EOF)) {
+		declaration();
+	}
+	consume(Token::TokenType::TOKEN_RIGHT_BRACE, "Expect '}' after block");
+}
 
 void Compiler::varDeclaration() {
 	size_t global = parseVariable("Expect variable name");
@@ -515,6 +603,10 @@ void Compiler::declaration() {
 void Compiler::statement() {
 	if (match(Token::TokenType::TOKEN_PRINT)) {
 		printStatement();
+	} else if (match(Token::TokenType::TOKEN_LEFT_BRACE)) {
+		beginScope();
+		block();
+		endScope();
 	} else {
 		expressionStatement();
 	}

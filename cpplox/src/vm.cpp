@@ -1,7 +1,7 @@
-#include "cpplox/obj.hpp"
 #include <cpplox/chunk.hpp>
 #include <cpplox/compiler.hpp>
 #include <cpplox/debug.hpp>
+#include <cpplox/obj.hpp>
 #include <cpplox/value.hpp>
 #include <cpplox/vm.hpp>
 
@@ -139,15 +139,23 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 	}
 }
 
-Value VM::readConstant(std::span<const std::byte>::iterator &ip) {
+size_t VM::readIndex(std::span<const std::byte>::iterator &ip) {
 	auto instruction = static_cast<lox::OpCode>(*(ip));
 	size_t address = static_cast<uint8_t>(nextByte(ip));
 	[[unlikely]]
 	if (instruction == OpCode::OP_CONSTANT_LONG ||
-	    instruction == OpCode::OP_DEFINE_GLOBAL_LONG) {
+	    instruction == OpCode::OP_GET_LOCAL_LONG ||
+	    instruction == OpCode::OP_SET_LOCAL_LONG ||
+	    instruction == OpCode::OP_GET_GLOBAL_LONG ||
+	    instruction == OpCode::OP_DEFINE_GLOBAL_LONG ||
+	    instruction == OpCode::OP_SET_GLOBAL_LONG) {
 		address = address << 8 | static_cast<uint8_t>(nextByte(ip));
 	}
-	return chunk.constants()[address];
+	return address;
+}
+
+Value VM::readConstant(std::span<const std::byte>::iterator &ip) {
+	return chunk.constants()[readIndex(ip)];
 }
 
 InterpretResult VM::run() {
@@ -166,8 +174,8 @@ InterpretResult VM::run() {
 		}
 		auto instruction = static_cast<lox::OpCode>(peekByte(ip));
 		switch (instruction) {
-		case OpCode::OP_CONSTANT_LONG:
-		case OpCode::OP_CONSTANT: {
+		case OpCode::OP_CONSTANT:
+		case OpCode::OP_CONSTANT_LONG: {
 			Value constant = readConstant(ip);
 			stack.push_back(constant);
 			break;
@@ -189,8 +197,24 @@ InterpretResult VM::run() {
 			stack.pop_back();
 			break;
 		}
-		case OpCode::OP_GET_GLOBAL_LONG:
-		case OpCode::OP_GET_GLOBAL: {
+		case OpCode::OP_GET_LOCAL:
+		case OpCode::OP_GET_LOCAL_LONG: {
+			size_t index = readIndex(ip);
+			stack.push_back(stack[index]);
+			break;
+		}
+		case OpCode::OP_SET_LOCAL:
+		case OpCode::OP_SET_LOCAL_LONG: {
+			size_t index = readIndex(ip);
+			if (stack.empty()) {
+				runtimeError("Stack underflow");
+				return InterpretResult::RUNTIME_ERROR;
+			}
+			stack[index] = stack.back();
+			break;
+		}
+		case OpCode::OP_GET_GLOBAL:
+		case OpCode::OP_GET_GLOBAL_LONG: {
 			Value value = readConstant(ip);
 			std::string name = valueToString(value);
 			if (auto it = globals.find(name); it != globals.end()) {
@@ -201,8 +225,8 @@ InterpretResult VM::run() {
 			}
 			break;
 		}
-		case OpCode::OP_DEFINE_GLOBAL_LONG:
-		case OpCode::OP_DEFINE_GLOBAL: {
+		case OpCode::OP_DEFINE_GLOBAL:
+		case OpCode::OP_DEFINE_GLOBAL_LONG: {
 			Value value = readConstant(ip);
 			std::string name = valueToString(value);
 			if (stack.empty()) {
@@ -213,8 +237,8 @@ InterpretResult VM::run() {
 			stack.pop_back();
 			break;
 		}
-		case OpCode::OP_SET_GLOBAL_LONG:
-		case OpCode::OP_SET_GLOBAL: {
+		case OpCode::OP_SET_GLOBAL:
+		case OpCode::OP_SET_GLOBAL_LONG: {
 			Value value = readConstant(ip);
 			std::string name = valueToString(value);
 			if (auto it = globals.find(name); it != globals.end()) {

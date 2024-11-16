@@ -1,4 +1,5 @@
 #include <cpplox/chunk.hpp>
+#include <cpplox/debug.hpp>
 #include <cpplox/terminal.hpp>
 #include <cpplox/value.hpp>
 
@@ -18,15 +19,25 @@ std::byte nextByte(std::span<const std::byte>::iterator &ip) { return *++ip; }
 
 std::byte peekByte(std::span<const std::byte>::iterator &ip) { return *ip; }
 
-void ConstantInstruction(std::string_view name, const lox::Chunk &chunk,
-                         std::span<const std::byte>::iterator &ip) {
+size_t getAddress(std::span<const std::byte>::iterator &ip) {
 	auto instruction = static_cast<lox::OpCode>(*ip);
 	size_t address = static_cast<uint8_t>(nextByte(ip));
 	[[unlikely]]
 	if (instruction == OpCode::OP_CONSTANT_LONG ||
-	    instruction == OpCode::OP_DEFINE_GLOBAL_LONG) {
+	    instruction == OpCode::OP_GET_LOCAL_LONG ||
+	    instruction == OpCode::OP_SET_LOCAL_LONG ||
+	    instruction == OpCode::OP_GET_GLOBAL_LONG ||
+	    instruction == OpCode::OP_DEFINE_GLOBAL_LONG ||
+	    instruction == OpCode::OP_SET_GLOBAL_LONG) {
 		address = address << 8 | static_cast<uint8_t>(nextByte(ip));
 	}
+	return address;
+}
+
+void ConstantInstruction(std::string_view name, const lox::Chunk &chunk,
+                         std::span<const std::byte>::iterator &ip) {
+	size_t address = getAddress(ip);
+
 	Value value = chunk.constants()[address];
 	std::cout << std::format(
 	    "{:<4} {} '", cli::terminal::cyan_colored(name),
@@ -41,13 +52,25 @@ void SimpleInstruction(std::string_view name,
 	std::cout << std::format("{}\n", cli::terminal::cyan_colored(name));
 }
 
+void ByteInstruction(std::string_view name, const lox::Chunk &chunk,
+                     std::span<const std::byte>::iterator &ip) {
+	size_t address = getAddress(ip);
+
+	std::cout << std::format(
+	    "{:<4} {} '", cli::terminal::cyan_colored(name),
+	    cli::terminal::yellow_colored(std::format("{:4d}", address)));
+	std::cout << "'\n";
+}
+
 void InstructionDisassembly(const lox::Chunk &chunk,
                             std::span<const std::byte>::iterator &ip) {
 	auto address = std::distance(chunk.code().begin(), ip);
 	size_t offset = address;
+	// print offset
 	std::cout << std::format("{}{}", cli::terminal::orange_colored("#"),
 	                         std::format("{:04d} ", offset));
 	auto instruction = static_cast<lox::OpCode>(peekByte(ip));
+	// print line
 	if (offset > 0 && chunk.getLine(offset) == chunk.getLine(offset - 1)) {
 		std::cout << std::format("   | ");
 	} else {
@@ -55,12 +78,10 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 	}
 
 	switch (instruction) {
-	case OpCode::OP_CONSTANT_LONG:
-		ConstantInstruction("OP_CONSTANT_LONG", chunk, ip);
-		break;
 	case OpCode::OP_CONSTANT:
-		ConstantInstruction("OP_CONSTANT", chunk, ip);
-		break;
+		return ConstantInstruction("OP_CONSTANT", chunk, ip);
+	case OpCode::OP_CONSTANT_LONG:
+		return ConstantInstruction("OP_CONSTANT_LONG", chunk, ip);
 	case OpCode::OP_NIL:
 		return SimpleInstruction("OP_NIL", ip);
 	case OpCode::OP_TRUE:
@@ -69,24 +90,26 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 		return SimpleInstruction("OP_FALSE", ip);
 	case OpCode::OP_POP:
 		return SimpleInstruction("OP_POP", ip);
-	case OpCode::OP_GET_GLOBAL_LONG:
-		ConstantInstruction("OP_GET_GLOBAL_LONG", chunk, ip);
-		break;
+	case OpCode::OP_GET_LOCAL:
+		return ByteInstruction("OP_GET_LOCAL", chunk, ip);
+	case OpCode::OP_GET_LOCAL_LONG:
+		return ByteInstruction("OP_GET_LOCAL_LONG", chunk, ip);
+	case OpCode::OP_SET_LOCAL:
+		return ByteInstruction("OP_SET_LOCAL", chunk, ip);
+	case OpCode::OP_SET_LOCAL_LONG:
+		return ByteInstruction("OP_SET_LOCAL_LONG", chunk, ip);
 	case OpCode::OP_GET_GLOBAL:
-		ConstantInstruction("OP_GET_GLOBAL", chunk, ip);
-		break;
-	case OpCode::OP_DEFINE_GLOBAL_LONG:
-		ConstantInstruction("OP_DEFINE_GLOBAL_LONG", chunk, ip);
-		break;
+		return ConstantInstruction("OP_GET_GLOBAL", chunk, ip);
+	case OpCode::OP_GET_GLOBAL_LONG:
+		return ConstantInstruction("OP_GET_GLOBAL_LONG", chunk, ip);
 	case OpCode::OP_DEFINE_GLOBAL:
-		ConstantInstruction("OP_DEFINE_GLOBAL", chunk, ip);
-		break;
-	case OpCode::OP_SET_GLOBAL_LONG:
-		ConstantInstruction("OP_SET_GLOBAL_LONG", chunk, ip);
-		break;
+		return ConstantInstruction("OP_DEFINE_GLOBAL", chunk, ip);
+	case OpCode::OP_DEFINE_GLOBAL_LONG:
+		return ConstantInstruction("OP_DEFINE_GLOBAL_LONG", chunk, ip);
 	case OpCode::OP_SET_GLOBAL:
-		ConstantInstruction("OP_SET_GLOBAL", chunk, ip);
-		break;
+		return ConstantInstruction("OP_SET_GLOBAL", chunk, ip);
+	case OpCode::OP_SET_GLOBAL_LONG:
+		return ConstantInstruction("OP_SET_GLOBAL_LONG", chunk, ip);
 	case OpCode::OP_EQUAL:
 		return SimpleInstruction("OP_EQUAL", ip);
 	case OpCode::OP_NOT_EQUAL:
