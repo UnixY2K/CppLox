@@ -96,6 +96,8 @@ class Compiler {
 	size_t parseVariable(std::string_view errorMessage);
 	void markInitialized();
 	void defineVariable(size_t global);
+	void and_(bool canAssign);
+	void or_(bool canAssign);
 	ParseRule &getRule(Token::TokenType type);
 	void expression();
 	void block();

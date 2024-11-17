@@ -70,7 +70,7 @@ void JumpInstruction(std::string_view name, const lox::Chunk &chunk,
 	size_t baseoffset = std::distance(chunk.code().begin(), ip);
 	size_t offset = baseoffset + sign * jump + 1;
 	std::cout << std::format(
-	    "{:<4} {} -> '{}'\n", cli::terminal::cyan_colored(name),
+	    "{:<4} {} -> {}\n", cli::terminal::cyan_colored(name),
 	    cli::terminal::green_colored(std::format("0x{:04X}", baseoffset)),
 	    cli::terminal::green_colored(std::format("0x{:04X}", offset)));
 }

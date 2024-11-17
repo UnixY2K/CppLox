@@ -111,6 +111,8 @@ void Compiler::initializeRules() {
 	// Literals.
 
 	// TOKEN_AND
+	rules[static_cast<size_t>(Token::TokenType::TOKEN_AND)] = {
+	    nullptr, &Compiler::and_, Precedence::PREC_AND};
 	// TOKEN_CLASS
 	// TOKEN_ELSE
 	// TOKEN_FALSE
@@ -123,6 +125,8 @@ void Compiler::initializeRules() {
 	rules[static_cast<size_t>(Token::TokenType::TOKEN_NIL)] = {
 	    &Compiler::literal, nullptr, Precedence::PREC_NONE};
 	// TOKEN_OR
+	rules[static_cast<size_t>(Token::TokenType::TOKEN_OR)] = {
+	    nullptr, &Compiler::or_, Precedence::PREC_OR};
 	// TOKEN_PRINT
 	// TOKEN_RETURN
 	// TOKEN_SUPER
@@ -542,6 +546,26 @@ void Compiler::defineVariable(size_t global) {
 	}
 	bytes.push_back(static_cast<std::byte>(global & 0xff));
 	emmitBytes(bytes);
+}
+
+void Compiler::and_(bool canAssign) {
+	size_t endJump = emmitJump(OpCode::OP_JUMP_IF_FALSE);
+
+	emmitByte(static_cast<std::byte>(OpCode::OP_POP));
+	parsePrecedence(Precedence::PREC_AND);
+
+	patchJump(endJump);
+}
+
+void Compiler::or_(bool canAssign) {
+	size_t elseJump = emmitJump(OpCode::OP_JUMP_IF_FALSE);
+	size_t endJump = emmitJump(OpCode::OP_JUMP);
+
+	patchJump(elseJump);
+	emmitByte(static_cast<std::byte>(OpCode::OP_POP));
+
+	parsePrecedence(Precedence::PREC_OR);
+	patchJump(endJump);
 }
 
 Compiler::ParseRule &Compiler::getRule(Token::TokenType type) {
