@@ -17,6 +17,9 @@ void SimpleInstruction(std::string_view name,
 void ByteInstruction(std::string_view name, const lox::Chunk &chunk,
                      std::span<const std::byte>::iterator &ip);
 
+void JumpInstruction(std::string_view name, const lox::Chunk &chunk,
+                     std::span<const std::byte>::iterator &ip, int sign);
+
 void InstructionDisassembly(const lox::Chunk &chunk,
                             std::span<const std::byte>::iterator &ip);
 

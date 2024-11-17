@@ -38,6 +38,8 @@ enum class OpCode {
 	OP_NOT,
 	OP_NEGATE,
 	OP_PRINT,
+	OP_JUMP,
+	OP_JUMP_IF_FALSE,
 	OP_RETURN,
 };
 
@@ -46,6 +48,7 @@ class Chunk {
 	void write(std::byte byte, size_t line);
 	void writeConstant(Value value, size_t line);
 	size_t addConstant(Value value);
+	bool patchByte(size_t offset, std::byte byte);
 
 	std::span<const std::byte> code() const;
 	std::size_t getLine(std::size_t offset) const;

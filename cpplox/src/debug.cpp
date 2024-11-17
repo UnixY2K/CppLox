@@ -28,7 +28,9 @@ size_t getAddress(std::span<const std::byte>::iterator &ip) {
 	    instruction == OpCode::OP_SET_LOCAL_LONG ||
 	    instruction == OpCode::OP_GET_GLOBAL_LONG ||
 	    instruction == OpCode::OP_DEFINE_GLOBAL_LONG ||
-	    instruction == OpCode::OP_SET_GLOBAL_LONG) {
+	    instruction == OpCode::OP_SET_GLOBAL_LONG ||
+	    instruction == OpCode::OP_JUMP ||
+	    instruction == OpCode::OP_JUMP_IF_FALSE) {
 		address = address << 8 | static_cast<uint8_t>(nextByte(ip));
 	}
 	return address;
@@ -62,13 +64,25 @@ void ByteInstruction(std::string_view name, const lox::Chunk &chunk,
 	std::cout << "'\n";
 }
 
+void JumpInstruction(std::string_view name, const lox::Chunk &chunk,
+                     std::span<const std::byte>::iterator &ip, int sign) {
+	size_t jump = getAddress(ip);
+	size_t baseoffset = std::distance(chunk.code().begin(), ip);
+	size_t offset = baseoffset + sign * jump + 1;
+	std::cout << std::format(
+	    "{:<4} {} -> '{}'\n", cli::terminal::cyan_colored(name),
+	    cli::terminal::green_colored(std::format("0x{:04X}", baseoffset)),
+	    cli::terminal::green_colored(std::format("0x{:04X}", offset)));
+}
+
 void InstructionDisassembly(const lox::Chunk &chunk,
                             std::span<const std::byte>::iterator &ip) {
 	auto address = std::distance(chunk.code().begin(), ip);
 	size_t offset = address;
 	// print offset
-	std::cout << std::format("{}{}", cli::terminal::orange_colored("#"),
-	                         std::format("{:04d} ", offset));
+	std::cout << std::format(
+	    "{}{}", cli::terminal::orange_colored("#"),
+	    cli::terminal::green_colored(std::format("{:04X} ", offset)));
 	auto instruction = static_cast<lox::OpCode>(peekByte(ip));
 	// print line
 	if (offset > 0 && chunk.getLine(offset) == chunk.getLine(offset - 1)) {
@@ -136,13 +150,15 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 		return SimpleInstruction("OP_NEGATE", ip);
 	case OpCode::OP_PRINT:
 		return SimpleInstruction("OP_PRINT", ip);
+	case OpCode::OP_JUMP:
+		return JumpInstruction("OP_JUMP", chunk, ip, 1);
+	case OpCode::OP_JUMP_IF_FALSE:
+		return JumpInstruction("OP_JUMP_IF_FALSE", chunk, ip, 1);
 	case OpCode::OP_RETURN:
 		return SimpleInstruction("OP_RETURN", ip);
-	default:
-		cli::terminal::logError(std::format("OP_UNKWN ({:#04x})",
-		                                    static_cast<uint8_t>(instruction)));
-		return;
 	}
+	cli::terminal::logError(
+	    std::format("OP_UNKWN ({:#04X})", static_cast<uint8_t>(instruction)));
 }
 
 void ChunkDisassembly(const lox::Chunk &chunk, std::string_view name) {

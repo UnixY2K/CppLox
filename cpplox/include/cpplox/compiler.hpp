@@ -71,9 +71,11 @@ class Compiler {
 	bool match(Token::TokenType type);
 	void emmitByte(std::byte byte);
 	void emmitBytes(std::span<std::byte> bytes);
+	size_t emmitJump(OpCode opCode);
 	void emmitReturn();
 	std::vector<std::byte> makeConstant(Value value);
 	void emmitConstant(Value value);
+	void patchJump(size_t offset);
 	void endCompiler();
 	void beginScope();
 	void endScope();
@@ -88,7 +90,7 @@ class Compiler {
 	void parsePrecedence(Precedence precedence);
 	size_t identifierConstant(Token name);
 	bool identifiersEqual(const Token &a, const Token &b);
-	int resolveLocal(const Token& name);
+	int resolveLocal(const Token &name);
 	void addLocal(Token name);
 	void declareVariable();
 	size_t parseVariable(std::string_view errorMessage);
@@ -99,6 +101,7 @@ class Compiler {
 	void block();
 	void varDeclaration();
 	void expressionStatement();
+	void ifStatement();
 	void printStatement();
 	void synchronize();
 	void declaration();

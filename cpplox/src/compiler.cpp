@@ -206,6 +206,13 @@ void Compiler::emmitBytes(std::span<std::byte> bytes) {
 	}
 }
 
+size_t Compiler::emmitJump(OpCode instruction) {
+	emmitByte(static_cast<std::byte>(instruction));
+	emmitByte(static_cast<std::byte>(0xff));
+	emmitByte(static_cast<std::byte>(0xff));
+	return chunk.code().size() - 2;
+}
+
 void Compiler::emmitReturn() {
 	emmitByte(static_cast<std::byte>(OpCode::OP_RETURN));
 }
@@ -234,6 +241,16 @@ std::vector<std::byte> Compiler::makeConstant(Value value) {
 void Compiler::emmitConstant(Value value) {
 	auto bytes = makeConstant(value);
 	emmitBytes(bytes);
+}
+
+void Compiler::patchJump(size_t offset) {
+	// -2 to adjust for the bytecode for the jump offset itself
+	size_t jump = chunk.code().size() - offset - 2;
+	if (jump > UINT16_MAX) {
+		error("Too much code to jump over");
+	}
+	chunk.patchByte(offset, static_cast<std::byte>(jump >> 8));
+	chunk.patchByte(offset + 1, static_cast<std::byte>(jump & 0xff));
 }
 
 void Compiler::endCompiler() {
@@ -559,6 +576,27 @@ void Compiler::expressionStatement() {
 	emmitByte(static_cast<std::byte>(OpCode::OP_POP));
 }
 
+void Compiler::ifStatement() {
+	consume(Token::TokenType::TOKEN_LEFT_PAREN, "Expect '(' after 'if'");
+	expression();
+	consume(Token::TokenType::TOKEN_RIGHT_PAREN, "Expect ')' after condition");
+
+	size_t thenJump = emmitJump(OpCode::OP_JUMP_IF_FALSE);
+	emmitByte(static_cast<std::byte>(OpCode::OP_POP));
+	statement();
+
+	size_t elseJump = emmitJump(OpCode::OP_JUMP);
+
+	patchJump(thenJump);
+	emmitByte(static_cast<std::byte>(OpCode::OP_POP));
+
+	if (match(Token::TokenType::TOKEN_ELSE)) {
+		statement();
+	}
+
+	patchJump(elseJump);
+}
+
 void Compiler::printStatement() {
 	expression();
 	consume(Token::TokenType::TOKEN_SEMICOLON, "Expect ';' after value");
@@ -604,6 +642,8 @@ void Compiler::declaration() {
 void Compiler::statement() {
 	if (match(Token::TokenType::TOKEN_PRINT)) {
 		printStatement();
+	} else if (match(Token::TokenType::TOKEN_IF)) {
+		ifStatement();
 	} else if (match(Token::TokenType::TOKEN_LEFT_BRACE)) {
 		beginScope();
 		block();

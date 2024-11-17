@@ -142,13 +142,16 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 size_t VM::readIndex(std::span<const std::byte>::iterator &ip) {
 	auto instruction = static_cast<lox::OpCode>(*(ip));
 	size_t address = static_cast<uint8_t>(nextByte(ip));
+	// 16 bit addresses
 	[[unlikely]]
 	if (instruction == OpCode::OP_CONSTANT_LONG ||
 	    instruction == OpCode::OP_GET_LOCAL_LONG ||
 	    instruction == OpCode::OP_SET_LOCAL_LONG ||
 	    instruction == OpCode::OP_GET_GLOBAL_LONG ||
 	    instruction == OpCode::OP_DEFINE_GLOBAL_LONG ||
-	    instruction == OpCode::OP_SET_GLOBAL_LONG) {
+	    instruction == OpCode::OP_SET_GLOBAL_LONG ||
+	    instruction == OpCode::OP_JUMP ||
+	    instruction == OpCode::OP_JUMP_IF_FALSE) {
 		address = address << 8 | static_cast<uint8_t>(nextByte(ip));
 	}
 	return address;
@@ -296,6 +299,18 @@ InterpretResult VM::run() {
 			}
 			std::cout << std::format("{}\n", valueToString(stack.back()));
 			stack.pop_back();
+			break;
+		}
+		case OpCode::OP_JUMP: {
+			size_t offset = readIndex(ip);
+			ip += offset;
+			break;
+		}
+		case OpCode::OP_JUMP_IF_FALSE: {
+			size_t offset = readIndex(ip);
+			if (!isTruthy(stack.back())) {
+				ip += offset;
+			}
 			break;
 		}
 		case OpCode::OP_RETURN: {

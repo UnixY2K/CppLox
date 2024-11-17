@@ -30,6 +30,14 @@ size_t Chunk::addConstant(Value value) {
 	return m_constants.size() - 1;
 }
 
+bool Chunk::patchByte(size_t offset, std::byte byte) {
+	if (offset >= m_code.size()) {
+		return false;
+	}
+	m_code[offset] = byte;
+	return true;
+}
+
 std::span<const std::byte> Chunk::code() const { return m_code; }
 std::size_t Chunk::getLine(std::size_t offset) const {
 	size_t line = 1;

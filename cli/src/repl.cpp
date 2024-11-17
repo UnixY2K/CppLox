@@ -1,5 +1,8 @@
-#include <cpplox/vm.hpp>
 #include <repl.hpp>
+
+#include <cpplox/compiler.hpp>
+#include <cpplox/debug.hpp>
+#include <cpplox/vm.hpp>
 
 #include <cstddef>
 #include <filesystem>
@@ -30,6 +33,7 @@ std::string_view trim(std::string_view sv) {
 
 void repl() {
 	VM vm;
+	bool interpret = true;
 	std::string line;
 	std::cout << "Lox REPL\n";
 	std::cout << "Type '#exit' to quit\n";
@@ -57,11 +61,26 @@ void repl() {
 					std::cout << std::format("Debug stack is {}\n",
 					                         vm.debug_stack ? "on" : "off");
 
+				} else if (line == "#interpret") {
+					interpret = !interpret;
+					std::cout << std::format("Interpret is {}\n",
+					                         interpret ? "on" : "off");
 				} else {
 					std::cout << "Unknown command\n";
 				}
 			} else {
-				vm.interpret(line);
+				// check if we interpret the line or only run the disassembler
+				if (interpret) {
+					vm.interpret(line);
+				} else {
+					Compiler compiler;
+					auto chunk = compiler.compile(line);
+					if (!chunk) {
+						std::cerr << chunk.error() << '\n';
+					} else {
+						debug::ChunkDisassembly(*chunk, "REPL");
+					}
+				}
 			}
 		}
 		std::cout << "> ";
