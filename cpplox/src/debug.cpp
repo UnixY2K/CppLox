@@ -30,7 +30,8 @@ size_t getAddress(std::span<const std::byte>::iterator &ip) {
 	    instruction == OpCode::OP_DEFINE_GLOBAL_LONG ||
 	    instruction == OpCode::OP_SET_GLOBAL_LONG ||
 	    instruction == OpCode::OP_JUMP ||
-	    instruction == OpCode::OP_JUMP_IF_FALSE) {
+	    instruction == OpCode::OP_JUMP_IF_FALSE ||
+	    instruction == OpCode::OP_LOOP) {
 		address = address << 8 | static_cast<uint8_t>(nextByte(ip));
 	}
 	return address;
@@ -154,6 +155,8 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 		return JumpInstruction("OP_JUMP", chunk, ip, 1);
 	case OpCode::OP_JUMP_IF_FALSE:
 		return JumpInstruction("OP_JUMP_IF_FALSE", chunk, ip, 1);
+	case OpCode::OP_LOOP:
+		return JumpInstruction("OP_LOOP", chunk, ip, -1);
 	case OpCode::OP_RETURN:
 		return SimpleInstruction("OP_RETURN", ip);
 	}

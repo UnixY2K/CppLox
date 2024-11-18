@@ -210,6 +210,18 @@ void Compiler::emmitBytes(std::span<std::byte> bytes) {
 	}
 }
 
+void Compiler::emmitLoop(size_t loopStart) {
+	emmitByte(static_cast<std::byte>(OpCode::OP_LOOP));
+
+	size_t offset = chunk.code().size() - loopStart + 2;
+	if (offset > UINT16_MAX) {
+		error("Loop body too large");
+	}
+
+	chunk.write(static_cast<std::byte>(offset >> 8), parser.previous.line);
+	chunk.write(static_cast<std::byte>(offset & 0xff), parser.previous.line);
+}
+
 size_t Compiler::emmitJump(OpCode instruction) {
 	emmitByte(static_cast<std::byte>(instruction));
 	emmitByte(static_cast<std::byte>(0xff));
@@ -600,6 +612,53 @@ void Compiler::expressionStatement() {
 	emmitByte(static_cast<std::byte>(OpCode::OP_POP));
 }
 
+void Compiler::forStatement() {
+	beginScope();
+	consume(Token::TokenType::TOKEN_LEFT_PAREN, "Expect '(' after 'for'");
+	if (match(Token::TokenType::TOKEN_SEMICOLON)) {
+		// no initializer
+	} else if (match(Token::TokenType::TOKEN_VAR)) {
+		varDeclaration();
+	} else {
+		expressionStatement();
+	}
+
+	size_t loopStart = chunk.code().size();
+	int exitJump = -1;
+
+	if (!match(Token::TokenType::TOKEN_SEMICOLON)) {
+		expression();
+		consume(Token::TokenType::TOKEN_SEMICOLON,
+		        "Expect ';' after loop condition");
+
+		exitJump = emmitJump(OpCode::OP_JUMP_IF_FALSE);
+		emmitByte(static_cast<std::byte>(OpCode::OP_POP));
+	}
+
+	if (!match(Token::TokenType::TOKEN_RIGHT_PAREN)) {
+		size_t bodyJump = emmitJump(OpCode::OP_JUMP);
+		size_t incrementStart = chunk.code().size();
+		expression();
+		emmitByte(static_cast<std::byte>(OpCode::OP_POP));
+		consume(Token::TokenType::TOKEN_RIGHT_PAREN,
+		        "Expect ')' after for clauses");
+
+		emmitLoop(loopStart);
+		loopStart = incrementStart;
+		patchJump(bodyJump);
+	}
+
+	statement();
+	emmitLoop(loopStart);
+
+	if (exitJump != -1) {
+		patchJump(exitJump);
+		emmitByte(static_cast<std::byte>(OpCode::OP_POP));
+	}
+
+	endScope();
+}
+
 void Compiler::ifStatement() {
 	consume(Token::TokenType::TOKEN_LEFT_PAREN, "Expect '(' after 'if'");
 	expression();
@@ -625,6 +684,21 @@ void Compiler::printStatement() {
 	expression();
 	consume(Token::TokenType::TOKEN_SEMICOLON, "Expect ';' after value");
 	emmitByte(static_cast<std::byte>(OpCode::OP_PRINT));
+}
+
+void Compiler::whileStatement() {
+	size_t loopStart = chunk.code().size();
+	consume(Token::TokenType::TOKEN_LEFT_PAREN, "Expect '(' after 'while'");
+	expression();
+	consume(Token::TokenType::TOKEN_RIGHT_PAREN, "Expect ')' after condition");
+
+	size_t exitJump = emmitJump(OpCode::OP_JUMP_IF_FALSE);
+	emmitByte(static_cast<std::byte>(OpCode::OP_POP));
+	statement();
+	emmitLoop(loopStart);
+
+	patchJump(exitJump);
+	emmitByte(static_cast<std::byte>(OpCode::OP_POP));
 }
 
 void Compiler::synchronize() {
@@ -666,8 +740,12 @@ void Compiler::declaration() {
 void Compiler::statement() {
 	if (match(Token::TokenType::TOKEN_PRINT)) {
 		printStatement();
+	} else if (match(Token::TokenType::TOKEN_FOR)) {
+		forStatement();
 	} else if (match(Token::TokenType::TOKEN_IF)) {
 		ifStatement();
+	} else if (match(Token::TokenType::TOKEN_WHILE)) {
+		whileStatement();
 	} else if (match(Token::TokenType::TOKEN_LEFT_BRACE)) {
 		beginScope();
 		block();

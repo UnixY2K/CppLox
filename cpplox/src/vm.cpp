@@ -151,7 +151,8 @@ size_t VM::readIndex(std::span<const std::byte>::iterator &ip) {
 	    instruction == OpCode::OP_DEFINE_GLOBAL_LONG ||
 	    instruction == OpCode::OP_SET_GLOBAL_LONG ||
 	    instruction == OpCode::OP_JUMP ||
-	    instruction == OpCode::OP_JUMP_IF_FALSE) {
+	    instruction == OpCode::OP_JUMP_IF_FALSE ||
+	    instruction == OpCode::OP_LOOP) {
 		address = address << 8 | static_cast<uint8_t>(nextByte(ip));
 	}
 	return address;
@@ -311,6 +312,11 @@ InterpretResult VM::run() {
 			if (!isTruthy(stack.back())) {
 				ip += offset;
 			}
+			break;
+		}
+		case OpCode::OP_LOOP: {
+			size_t offset = readIndex(ip);
+			ip -= offset;
 			break;
 		}
 		case OpCode::OP_RETURN: {

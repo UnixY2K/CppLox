@@ -71,6 +71,7 @@ class Compiler {
 	bool match(Token::TokenType type);
 	void emmitByte(std::byte byte);
 	void emmitBytes(std::span<std::byte> bytes);
+	void emmitLoop(size_t loopStart);
 	size_t emmitJump(OpCode opCode);
 	void emmitReturn();
 	std::vector<std::byte> makeConstant(Value value);
@@ -103,8 +104,10 @@ class Compiler {
 	void block();
 	void varDeclaration();
 	void expressionStatement();
+	void forStatement();
 	void ifStatement();
 	void printStatement();
+	void whileStatement();
 	void synchronize();
 	void declaration();
 	void statement();
