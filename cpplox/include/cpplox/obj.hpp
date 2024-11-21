@@ -10,7 +10,17 @@ template <class... Ts> struct overloads : Ts... {
 	using Ts::operator()...;
 };
 
-using Obj = std::variant<std::string>;
+class Object {};
+class Chunk;
+
+struct Function {
+	Object obj;
+	Chunk *chunk;
+	size_t arity;
+	std::string name;
+};
+
+using Obj = std::variant<std::string, Function>;
 
 std::string objToString(const Obj &obj);
 
