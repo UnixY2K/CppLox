@@ -143,6 +143,8 @@ void Compiler::initializeRules() {
 	// TOKEN_EOF
 }
 
+Chunk &Compiler::currentChunk() { return *function.chunk; }
+
 void Compiler::errorAt(Token token, std::string_view message) {
 	if (!parser.panicMode) {
 		parser.panicMode = true;
@@ -201,7 +203,7 @@ bool Compiler::match(Token::TokenType type) {
 }
 
 void Compiler::emmitByte(std::byte byte) {
-	chunk.write(byte, parser.previous.line);
+	currentChunk().write(byte, parser.previous.line);
 }
 
 void Compiler::emmitBytes(std::span<std::byte> bytes) {
@@ -212,6 +214,8 @@ void Compiler::emmitBytes(std::span<std::byte> bytes) {
 
 void Compiler::emmitLoop(size_t loopStart) {
 	emmitByte(static_cast<std::byte>(OpCode::OP_LOOP));
+
+	Chunk &chunk = currentChunk();
 
 	size_t offset = chunk.code().size() - loopStart + 2;
 	if (offset > UINT16_MAX) {
@@ -226,7 +230,7 @@ size_t Compiler::emmitJump(OpCode instruction) {
 	emmitByte(static_cast<std::byte>(instruction));
 	emmitByte(static_cast<std::byte>(0xff));
 	emmitByte(static_cast<std::byte>(0xff));
-	return chunk.code().size() - 2;
+	return currentChunk().code().size() - 2;
 }
 
 void Compiler::emmitReturn() {
@@ -234,7 +238,7 @@ void Compiler::emmitReturn() {
 }
 
 std::vector<std::byte> Compiler::makeConstant(Value value) {
-	auto index = chunk.addConstant(value);
+	auto index = currentChunk().addConstant(value);
 	// depending on the index size we use OP_CONSTANT or OP_CONSTANT_LONG
 	auto opcode =
 	    index > UINT8_MAX ? OpCode::OP_CONSTANT_LONG : OpCode::OP_CONSTANT;
@@ -260,6 +264,7 @@ void Compiler::emmitConstant(Value value) {
 }
 
 void Compiler::patchJump(size_t offset) {
+	Chunk &chunk = currentChunk();
 	// -2 to adjust for the bytecode for the jump offset itself
 	size_t jump = chunk.code().size() - offset - 2;
 	if (jump > UINT16_MAX) {
@@ -271,7 +276,7 @@ void Compiler::patchJump(size_t offset) {
 
 void Compiler::endCompiler() {
 	if (debug_print_code && !parser.hadError) {
-		debug::ChunkDisassembly(chunk, "code");
+		debug::ChunkDisassembly(currentChunk(), "code");
 	}
 	emmitReturn();
 }
@@ -613,6 +618,7 @@ void Compiler::expressionStatement() {
 }
 
 void Compiler::forStatement() {
+	Chunk &chunk = currentChunk();
 	beginScope();
 	consume(Token::TokenType::TOKEN_LEFT_PAREN, "Expect '(' after 'for'");
 	if (match(Token::TokenType::TOKEN_SEMICOLON)) {
@@ -687,6 +693,7 @@ void Compiler::printStatement() {
 }
 
 void Compiler::whileStatement() {
+	Chunk &chunk = currentChunk();
 	size_t loopStart = chunk.code().size();
 	consume(Token::TokenType::TOKEN_LEFT_PAREN, "Expect '(' after 'while'");
 	expression();
@@ -755,12 +762,15 @@ void Compiler::statement() {
 	}
 }
 
-auto Compiler::compile(std::string_view source)
-    -> std::expected<Chunk, std::string> {
+auto Compiler::compile(std::string_view source,
+                       FunctionType type) -> std::expected<Chunk, std::string> {
+	Chunk &chunk = currentChunk();
 	// reset the compiler state
 	parser = Parser{};
-	chunk = Chunk{};
 	scanner = Scanner{source};
+	scope = CompilerScope{};
+	function = ObjFunction{};
+	this->type = type;
 	advance();
 
 	while (!match(Token::TokenType::TOKEN_EOF)) {

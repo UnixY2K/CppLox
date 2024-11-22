@@ -1,5 +1,6 @@
 #pragma once
 #include <cpplox/chunk.hpp>
+#include <cpplox/obj.hpp>
 #include <cpplox/scanner.hpp>
 
 #include <array>
@@ -10,7 +11,7 @@
 #include <vector>
 
 namespace lox {
-
+enum class FunctionType { TYPE_FUNCTION, TYPE_SCRIPT };
 struct Parser;
 class Compiler {
 
@@ -62,6 +63,7 @@ class Compiler {
 		std::vector<Local> locals;
 	};
 
+	Chunk &currentChunk();
 	void errorAt(Token token, std::string_view message);
 	void error(std::string_view message);
 	void errorAtCurrent(std::string_view message);
@@ -114,15 +116,18 @@ class Compiler {
 
   public:
 	Compiler();
-	auto compile(std::string_view source) -> std::expected<Chunk, std::string>;
+	auto compile(std::string_view source,
+	             FunctionType type = FunctionType::TYPE_SCRIPT)
+	    -> std::expected<Chunk, std::string>;
 
 	bool debug_print_code = false;
 
   private:
 	Parser parser;
 	Scanner scanner;
-	Chunk chunk;
 	CompilerScope scope;
+	ObjFunction function;
+	FunctionType type = FunctionType::TYPE_FUNCTION;
 };
 
 } // namespace lox
