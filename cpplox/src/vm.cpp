@@ -340,7 +340,8 @@ InterpretResult VM::interpret(const Chunk &chunk) {
 InterpretResult VM::interpret(std::string_view source) {
 	auto compiler = Compiler{};
 	if (const auto result = compiler.compile(source); result.has_value()) {
-		return interpret(result.value());
+		auto &chunk = result->get().chunk.get();
+		return interpret(chunk);
 	} else {
 		return InterpretResult::COMPILE_ERROR;
 	}

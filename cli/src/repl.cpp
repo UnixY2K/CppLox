@@ -74,11 +74,12 @@ void repl() {
 					vm.interpret(line);
 				} else {
 					Compiler compiler;
-					auto chunk = compiler.compile(line);
-					if (!chunk) {
-						std::cerr << chunk.error() << '\n';
+					auto script = compiler.compile(line);
+					if (!script) {
+						std::cerr << script.error() << '\n';
 					} else {
-						debug::ChunkDisassembly(*chunk, "REPL");
+						auto &chunk = script->get().chunk.get();
+						debug::ChunkDisassembly(chunk, "REPL");
 					}
 				}
 			}

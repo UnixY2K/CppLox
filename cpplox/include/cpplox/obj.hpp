@@ -27,6 +27,8 @@ class ChunkHolder {
 	ChunkHolder &operator=(const Chunk &);
 	ChunkHolder &operator=(Chunk &&) noexcept;
 
+	Chunk& get() const;
+
 	Chunk &operator*() const;
 	Chunk *operator->() const;
 

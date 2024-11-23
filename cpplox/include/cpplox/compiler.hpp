@@ -1,11 +1,13 @@
 #pragma once
 #include <cpplox/chunk.hpp>
+#include <cpplox/compiler.hpp>
 #include <cpplox/obj.hpp>
 #include <cpplox/scanner.hpp>
 
 #include <array>
 #include <cstddef>
 #include <expected>
+#include <functional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -79,7 +81,7 @@ class Compiler {
 	std::vector<std::byte> makeConstant(Value value);
 	void emmitConstant(Value value);
 	void patchJump(size_t offset);
-	void endCompiler();
+	ObjFunction &endCompiler();
 	void beginScope();
 	void endScope();
 	void binary(bool canAssign);
@@ -118,7 +120,7 @@ class Compiler {
 	Compiler();
 	auto compile(std::string_view source,
 	             FunctionType type = FunctionType::TYPE_SCRIPT)
-	    -> std::expected<Chunk, std::string>;
+	    -> std::expected<std::reference_wrapper<ObjFunction>, std::string>;
 
 	bool debug_print_code = false;
 

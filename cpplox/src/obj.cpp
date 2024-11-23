@@ -46,6 +46,8 @@ ChunkHolder &ChunkHolder::operator=(Chunk &&other) noexcept {
 	return *this;
 }
 
+Chunk &ChunkHolder::get() const { return *chunk; }
+
 Chunk &ChunkHolder::operator*() const { return *chunk; }
 
 Chunk *ChunkHolder::operator->() const { return chunk; }
@@ -57,7 +59,11 @@ std::string objToString(const Obj &obj) {
 	std::visit(
 	    overloads{[&result](const std::string &value) { result = value; },
 	              [&result](const ObjFunction &value) {
-		              result = std::format("<fn {}>", value.name);
+		              if (value.name.empty()) {
+			              result = "<script>";
+		              } else {
+			              result = std::format("<fn {}>", value.name);
+		              }
 	              }},
 	    obj);
 	return result;

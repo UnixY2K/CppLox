@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <iostream>
 #include <ranges>
 #include <vector>
@@ -274,11 +275,14 @@ void Compiler::patchJump(size_t offset) {
 	chunk.patchByte(offset + 1, static_cast<std::byte>(jump & 0xff));
 }
 
-void Compiler::endCompiler() {
+ObjFunction &Compiler::endCompiler() {
+	ObjFunction &function = this->function;
 	if (debug_print_code && !parser.hadError) {
-		debug::ChunkDisassembly(currentChunk(), "code");
+		debug::ChunkDisassembly(
+		    currentChunk(), function.name.empty() ? "<script>" : function.name);
 	}
 	emmitReturn();
+	return function;
 }
 
 void Compiler::beginScope() { scope.depth++; }
@@ -762,9 +766,8 @@ void Compiler::statement() {
 	}
 }
 
-auto Compiler::compile(std::string_view source,
-                       FunctionType type) -> std::expected<Chunk, std::string> {
-	Chunk &chunk = currentChunk();
+auto Compiler::compile(std::string_view source, FunctionType type)
+    -> std::expected<std::reference_wrapper<ObjFunction>, std::string> {
 	// reset the compiler state
 	parser = Parser{};
 	scanner = Scanner{source};
@@ -777,9 +780,9 @@ auto Compiler::compile(std::string_view source,
 		declaration();
 	}
 
-	endCompiler();
+	ObjFunction &function = endCompiler();
 	return parser.hadError ? std::unexpected("Compilation error")
-	                       : std::expected<Chunk, std::string>{chunk};
+	                       : std::expected<std::reference_wrapper<ObjFunction>, std::string>{function};
 }
 
 } // namespace lox
