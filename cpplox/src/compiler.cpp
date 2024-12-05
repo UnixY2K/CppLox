@@ -156,9 +156,7 @@ void Compiler::initializeRules() {
 	// TOKEN_EOF
 }
 
-Chunk &Compiler::currentChunk() {
-	return *function.chunk;
-}
+Chunk &Compiler::currentChunk() { return *function.chunk; }
 
 void Compiler::errorAt(Token token, std::string_view message) {
 	if (!parser.panicMode) {
@@ -249,6 +247,7 @@ size_t Compiler::emmitJump(OpCode instruction) {
 }
 
 void Compiler::emmitReturn() {
+	emmitByte(static_cast<std::byte>(OpCode::OP_NIL));
 	emmitByte(static_cast<std::byte>(OpCode::OP_RETURN));
 }
 
@@ -776,6 +775,21 @@ void Compiler::printStatement() {
 	emmitByte(static_cast<std::byte>(OpCode::OP_PRINT));
 }
 
+void Compiler::returnStatement() {
+	if (type == FunctionType::TYPE_SCRIPT) {
+		error("Can't return from top-level code.");
+	}
+
+	if (match(Token::TokenType::TOKEN_SEMICOLON)) {
+		emmitReturn();
+	} else {
+		expression();
+		consume(Token::TokenType::TOKEN_SEMICOLON,
+		        "Expect ';' after return value");
+		emmitByte(static_cast<std::byte>(OpCode::OP_RETURN));
+	}
+}
+
 void Compiler::whileStatement() {
 	Chunk &chunk = currentChunk();
 	size_t loopStart = chunk.code().size();
@@ -837,6 +851,8 @@ void Compiler::statement() {
 		forStatement();
 	} else if (match(Token::TokenType::TOKEN_IF)) {
 		ifStatement();
+	} else if (match(Token::TokenType::TOKEN_RETURN)) {
+		returnStatement();
 	} else if (match(Token::TokenType::TOKEN_WHILE)) {
 		whileStatement();
 	} else if (match(Token::TokenType::TOKEN_LEFT_BRACE)) {

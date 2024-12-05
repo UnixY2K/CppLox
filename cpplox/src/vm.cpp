@@ -403,10 +403,23 @@ InterpretResult VM::run() {
 			if (!callValue(stack.back(), argCount)) {
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			run();
 			break;
 		}
 		case OpCode::OP_RETURN: {
+			if (stack.empty()) {
+				runtimeError("Stack underflow.");
+				return InterpretResult::RUNTIME_ERROR;
+			}
+			Value result = stack.back().clone();
+			callFrames.pop_back();
+			if (callFrames.empty()) {
+				if (stack.empty()) {
+					runtimeError("Stack underflow.");
+					return InterpretResult::RUNTIME_ERROR;
+				}
+				stack.pop_back();
+				return InterpretResult::OK;
+			}
 		}
 		}
 		if (had_error) {

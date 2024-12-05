@@ -115,6 +115,7 @@ class Compiler {
 	void forStatement();
 	void ifStatement();
 	void printStatement();
+	void returnStatement();
 	void whileStatement();
 	void synchronize();
 	void declaration();
