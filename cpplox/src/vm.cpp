@@ -15,8 +15,11 @@
 namespace lox {
 
 void VM::runtimeError(std::string_view message) {
+	CallFrame &frame = callFrames.back();
+	auto &currentChunk = frame.function.chunk.get();
+	size_t line = currentChunk.getLine(frame.ip);
 	std::cerr << std::format("{}\n", message);
-	std::cerr << std::format("[line {}] in script\n", 0);
+	std::cerr << std::format("[line {}] in script\n", line);
 	had_error = true;
 	stack.clear();
 }
@@ -159,11 +162,14 @@ size_t VM::readIndex(std::span<const std::byte>::iterator &ip) {
 }
 
 Value VM::readConstant(std::span<const std::byte>::iterator &ip) {
+	auto &chunk = callFrames.back().function.chunk.get();
 	return chunk.constants()[readIndex(ip)];
 }
 
 InterpretResult VM::run() {
-	auto code = chunk.code();
+	CallFrame &frame = callFrames.back();
+	auto &currentChunk = frame.function.chunk.get();
+	auto code = currentChunk.code();
 	for (auto ip = code.begin(); ip != code.end(); ip++) {
 		if (debug_trace_instruction) {
 			auto it = ip;
@@ -174,7 +180,7 @@ InterpretResult VM::run() {
 				}
 				std::cout << "\n";
 			}
-			debug::InstructionDisassembly(chunk, it);
+			debug::InstructionDisassembly(currentChunk, it);
 		}
 		auto instruction = static_cast<lox::OpCode>(peekByte(ip));
 		switch (instruction) {
@@ -204,7 +210,7 @@ InterpretResult VM::run() {
 		case OpCode::OP_GET_LOCAL:
 		case OpCode::OP_GET_LOCAL_LONG: {
 			size_t index = readIndex(ip);
-			stack.push_back(stack[index]);
+			stack.push_back(frame.slots[index]);
 			break;
 		}
 		case OpCode::OP_SET_LOCAL:
@@ -214,7 +220,7 @@ InterpretResult VM::run() {
 				runtimeError("Stack underflow");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			stack[index] = stack.back();
+			frame.slots[index] = stack.back();
 			break;
 		}
 		case OpCode::OP_GET_GLOBAL:
@@ -304,19 +310,19 @@ InterpretResult VM::run() {
 		}
 		case OpCode::OP_JUMP: {
 			size_t offset = readIndex(ip);
-			ip += offset;
+			frame.ip += offset;
 			break;
 		}
 		case OpCode::OP_JUMP_IF_FALSE: {
 			size_t offset = readIndex(ip);
 			if (!isTruthy(stack.back())) {
-				ip += offset;
+				frame.ip += offset;
 			}
 			break;
 		}
 		case OpCode::OP_LOOP: {
 			size_t offset = readIndex(ip);
-			ip -= offset;
+			frame.ip -= offset;
 			break;
 		}
 		case OpCode::OP_RETURN: {
@@ -329,19 +335,18 @@ InterpretResult VM::run() {
 	return InterpretResult::OK;
 }
 
-InterpretResult VM::interpret(const Chunk &chunk) {
+InterpretResult VM::interpret(const ObjFunction &function) {
 	had_error = false;
-	this->chunk = chunk;
-	this->ip = this->chunk.code().begin();
-	this->ip_end = this->chunk.code().end();
+	callFrames.clear();
+	callFrames.push_back(CallFrame{const_cast<ObjFunction &>(function)});
 	return run();
 }
 
 InterpretResult VM::interpret(std::string_view source) {
 	auto compiler = Compiler{};
 	if (const auto result = compiler.compile(source); result.has_value()) {
-		auto &chunk = result->get().chunk.get();
-		return interpret(chunk);
+		auto &function = result->get();
+		return interpret(function);
 	} else {
 		return InterpretResult::COMPILE_ERROR;
 	}

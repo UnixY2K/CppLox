@@ -1,5 +1,6 @@
 #pragma once
 #include <cpplox/chunk.hpp>
+#include <cpplox/obj.hpp>
 #include <cpplox/value.hpp>
 
 #include <cstddef>
@@ -8,6 +9,16 @@
 
 namespace lox {
 enum class InterpretResult { OK, COMPILE_ERROR, RUNTIME_ERROR };
+
+struct CallFrame {
+
+	CallFrame(ObjFunction &function)
+	    : function(function), ip(0), slots(function.arity) {}
+
+	ObjFunction function;
+	size_t ip;
+	std::vector<Value> slots;
+};
 
 class VM {
 	void runtimeError(std::string_view message);
@@ -26,17 +37,16 @@ class VM {
 	InterpretResult run();
 
   public:
-	InterpretResult interpret(const Chunk &chunk);
+	InterpretResult interpret(const ObjFunction &function);
 	InterpretResult interpret(std::string_view source);
 	bool debug_trace_instruction = false;
 	bool debug_stack = false;
 
   private:
+	std::vector<CallFrame> callFrames;
 	bool had_error = false;
-	Chunk chunk;
 	std::vector<Value> stack;
 	std::unordered_map<std::string, Value> globals;
 	std::span<const std::byte>::iterator ip;
-	std::span<const std::byte>::iterator ip_end;
 };
 } // namespace lox
