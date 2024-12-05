@@ -41,12 +41,12 @@ void ConstantInstruction(std::string_view name, const lox::Chunk &chunk,
                          std::span<const std::byte>::iterator &ip) {
 	size_t address = getAddress(ip);
 
-	Value value = chunk.constants()[address];
+	auto &value = chunk.constants()[address];
 	std::cout << std::format(
 	    "{:<4} {} '", cli::terminal::cyan_colored(name),
 	    cli::terminal::yellow_colored(std::format("{:4d}", address)));
 	std::cout << cli::terminal::green_colored(
-	    std::format("{}", valueToString(value)));
+	    std::format("{}", value.toString()));
 	std::cout << "'\n";
 }
 

@@ -4,6 +4,7 @@
 #include <cpplox/value.hpp>
 
 #include <cstddef>
+#include <optional>
 #include <string_view>
 #include <unordered_map>
 
@@ -12,11 +13,21 @@ enum class InterpretResult { OK, COMPILE_ERROR, RUNTIME_ERROR };
 
 struct CallFrame {
 
-	CallFrame(ObjFunction &function)
-	    : function(function), ip(function.chunk.get().code().begin()),
+	CallFrame(const ObjFunction &function)
+	    : function(function), ip(function.chunk->code().begin()),
 	      slots(function.arity) {}
 
-	ObjFunction &function;
+	// move constructor
+	CallFrame(CallFrame &&other) noexcept
+	    : function(other.function), ip(other.ip),
+	      slots(std::move(other.slots)) {
+		other.ip = other.function.chunk->code().begin();
+	}
+
+	// callframes are not copyable
+	CallFrame(const CallFrame &) = delete;
+
+	const ObjFunction &function;
 	std::span<const std::byte>::iterator ip;
 	std::vector<Value> slots;
 };
@@ -37,7 +48,8 @@ class VM {
 	bool callValue(const Value &callee, size_t argCount);
 
 	size_t readIndex(std::span<const std::byte>::iterator &ip);
-	Value readConstant(std::span<const std::byte>::iterator &ip);
+	auto readConstant(std::span<const std::byte>::iterator &ip)
+	    -> std::optional<std::reference_wrapper<const Value>>;
 	InterpretResult run();
 
   public:

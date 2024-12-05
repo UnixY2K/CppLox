@@ -156,7 +156,9 @@ void Compiler::initializeRules() {
 	// TOKEN_EOF
 }
 
-Chunk &Compiler::currentChunk() { return *function.chunk; }
+Chunk &Compiler::currentChunk() {
+	return *function.chunk;
+}
 
 void Compiler::errorAt(Token token, std::string_view message) {
 	if (!parser.panicMode) {
@@ -250,7 +252,7 @@ void Compiler::emmitReturn() {
 	emmitByte(static_cast<std::byte>(OpCode::OP_RETURN));
 }
 
-std::vector<std::byte> Compiler::makeConstant(Value value) {
+std::vector<std::byte> Compiler::makeConstant(const Value &value) {
 	auto index = currentChunk().addConstant(value);
 	// depending on the index size we use OP_CONSTANT or OP_CONSTANT_LONG
 	auto opcode =
@@ -271,7 +273,7 @@ std::vector<std::byte> Compiler::makeConstant(Value value) {
 	return bytes;
 }
 
-void Compiler::emmitConstant(Value value) {
+void Compiler::emmitConstant(const Value &value) {
 	auto bytes = makeConstant(value);
 	emmitBytes(bytes);
 }
@@ -294,7 +296,7 @@ ObjFunction &Compiler::endCompiler() {
 		    currentChunk(), function.name.empty() ? "<script>" : function.name);
 	}
 	emmitReturn();
-	if(enclosing != nullptr) {
+	if (enclosing != nullptr) {
 		// restore the parser and scanner state to the enclosing compiler
 		enclosing->parser = parser;
 		enclosing->scanner = scanner;
@@ -405,7 +407,7 @@ void Compiler::number(bool canAssign) {
 		return;
 	}
 #endif
-	emmitConstant(value);
+	emmitConstant(Value{value});
 }
 
 void Compiler::namedVariable(Token name, bool canAssign) {
@@ -455,7 +457,7 @@ void Compiler::string(bool canAssign) {
 	// remove the quotes from the string
 	auto str =
 	    parser.previous.lexeme.substr(1, parser.previous.lexeme.size() - 2);
-	emmitConstant(stringToValue(str));
+	emmitConstant(Value{str});
 }
 
 void Compiler::unary(bool canAssign) {
@@ -498,7 +500,7 @@ void Compiler::parsePrecedence(Precedence precedence) {
 }
 
 size_t Compiler::identifierConstant(Token name) {
-	std::vector<std::byte> value = makeConstant(stringToValue(name.lexeme));
+	std::vector<std::byte> value = makeConstant(Value{name.lexeme});
 	// we reconstruct the bytes to an size_t
 	// ignore the first bythe which is the opcode
 	value.erase(value.begin());
@@ -669,8 +671,8 @@ void Compiler::functionDefinition(FunctionType type) {
 	                 "Expect '{' before function body");
 	compiler.block();
 
-	ObjFunction function = compiler.endCompiler();
-	std::vector<std::byte> bytes = makeConstant(Value{function});
+	auto &function = compiler.endCompiler();
+	std::vector<std::byte> bytes = makeConstant(Value{function.clone()});
 	emmitBytes(bytes);
 }
 

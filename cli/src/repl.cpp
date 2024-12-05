@@ -78,7 +78,7 @@ void repl() {
 					if (!script) {
 						std::cerr << script.error() << '\n';
 					} else {
-						auto &chunk = script->get().chunk.get();
+						auto &chunk = *script->get().chunk.get();
 						debug::ChunkDisassembly(chunk, "REPL");
 					}
 				}

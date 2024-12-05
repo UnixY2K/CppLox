@@ -13,7 +13,7 @@ void Chunk::write(std::byte byte, size_t line) {
 		++std::get<1>(m_lines.back());
 	}
 }
-void Chunk::writeConstant(Value value, size_t line) {
+void Chunk::writeConstant(const Value &value, size_t line) {
 	size_t index = addConstant(value);
 	if (index <= UINT8_MAX) {
 		write(static_cast<std::byte>(OpCode::OP_CONSTANT), line);
@@ -25,8 +25,8 @@ void Chunk::writeConstant(Value value, size_t line) {
 	}
 }
 
-size_t Chunk::addConstant(Value value) {
-	m_constants.push_back(value);
+size_t Chunk::addConstant(const Value &value) {
+	m_constants.emplace_back(value.clone());
 	return m_constants.size() - 1;
 }
 

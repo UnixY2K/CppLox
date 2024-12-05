@@ -78,8 +78,8 @@ class Compiler {
 	void emmitLoop(size_t loopStart);
 	size_t emmitJump(OpCode opCode);
 	void emmitReturn();
-	std::vector<std::byte> makeConstant(Value value);
-	void emmitConstant(Value value);
+	std::vector<std::byte> makeConstant(const Value &value);
+	void emmitConstant(const Value &value);
 	void patchJump(size_t offset);
 	ObjFunction &endCompiler();
 	void beginScope();
