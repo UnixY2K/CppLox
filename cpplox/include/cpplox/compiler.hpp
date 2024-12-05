@@ -56,12 +56,12 @@ class Compiler {
 
 	struct Local {
 		Token name;
-		size_t depth;
+		int depth;
 		bool initialized = false;
 	};
 
 	struct CompilerScope {
-		size_t depth = 0;
+		int depth = 0;
 		std::vector<Local> locals;
 	};
 
