@@ -6,6 +6,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <expected>
 #include <functional>
 #include <string>
@@ -14,7 +15,6 @@
 
 namespace lox {
 enum class FunctionType { TYPE_FUNCTION, TYPE_SCRIPT };
-struct Parser;
 class Compiler {
 
 	enum class Precedence {
@@ -85,6 +85,7 @@ class Compiler {
 	void beginScope();
 	void endScope();
 	void binary(bool canAssign);
+	void call(bool canAssign);
 	void literal(bool canAssign);
 	void grouping(bool canAssign);
 	void number(bool canAssign);
@@ -101,11 +102,14 @@ class Compiler {
 	size_t parseVariable(std::string_view errorMessage);
 	void markInitialized();
 	void defineVariable(size_t global);
+	uint8_t argumentList();
 	void and_(bool canAssign);
 	void or_(bool canAssign);
 	ParseRule &getRule(Token::TokenType type);
 	void expression();
 	void block();
+	void functionDefinition(FunctionType type);
+	void funDeclaration();
 	void varDeclaration();
 	void expressionStatement();
 	void forStatement();
@@ -117,7 +121,7 @@ class Compiler {
 	void statement();
 
   public:
-	Compiler();
+	Compiler(Compiler *enclosing = nullptr, FunctionType type = FunctionType::TYPE_SCRIPT);
 	auto compile(std::string_view source,
 	             FunctionType type = FunctionType::TYPE_SCRIPT)
 	    -> std::expected<std::reference_wrapper<ObjFunction>, std::string>;
@@ -125,6 +129,7 @@ class Compiler {
 	bool debug_print_code = false;
 
   private:
+	Compiler *enclosing = nullptr;
 	Parser parser;
 	Scanner scanner;
 	CompilerScope scope;

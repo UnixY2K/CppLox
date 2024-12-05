@@ -38,7 +38,7 @@ class ChunkHolder {
 struct ObjFunction {
 	Object obj;
 	ChunkHolder chunk;
-	size_t arity;
+	size_t arity = 0;
 	std::string name;
 };
 

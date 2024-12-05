@@ -13,10 +13,11 @@ enum class InterpretResult { OK, COMPILE_ERROR, RUNTIME_ERROR };
 struct CallFrame {
 
 	CallFrame(ObjFunction &function)
-	    : function(function), ip(0), slots(function.arity) {}
+	    : function(function), ip(function.chunk.get().code().begin()),
+	      slots(function.arity) {}
 
-	ObjFunction function;
-	size_t ip;
+	ObjFunction &function;
+	std::span<const std::byte>::iterator ip;
 	std::vector<Value> slots;
 };
 
@@ -32,6 +33,9 @@ class VM {
 
 	void binaryOp(std::span<const std::byte>::iterator &ip);
 
+	bool call(const ObjFunction &function, size_t argCount);
+	bool callValue(const Value &callee, size_t argCount);
+
 	size_t readIndex(std::span<const std::byte>::iterator &ip);
 	Value readConstant(std::span<const std::byte>::iterator &ip);
 	InterpretResult run();
@@ -39,8 +43,9 @@ class VM {
   public:
 	InterpretResult interpret(const ObjFunction &function);
 	InterpretResult interpret(std::string_view source);
-	bool debug_trace_instruction = false;
+	bool debug_trace_instruction = true;
 	bool debug_stack = false;
+	size_t max_callframes_size = 1024;
 
   private:
 	std::vector<CallFrame> callFrames;

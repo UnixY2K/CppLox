@@ -15,11 +15,20 @@
 namespace lox {
 
 void VM::runtimeError(std::string_view message) {
-	CallFrame &frame = callFrames.back();
-	auto &currentChunk = frame.function.chunk.get();
-	size_t line = currentChunk.getLine(frame.ip);
 	std::cerr << std::format("{}\n", message);
-	std::cerr << std::format("[line {}] in script\n", line);
+	for (auto it = callFrames.rbegin(); it != callFrames.rend(); it++) {
+		auto &frame = *it;
+		auto &function = frame.function;
+		auto &chunk = function.chunk.get();
+		size_t offset = frame.ip - chunk.code().begin();
+		size_t line = chunk.getLine(offset);
+		std::cerr << std::format("[line {}] in ", line);
+		if (function.name.empty()) {
+			std::cerr << "script\n";
+		} else {
+			std::cerr << std::format("function {}\n", function.name);
+		}
+	}
 	had_error = true;
 	stack.clear();
 }
@@ -142,6 +151,37 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 	}
 }
 
+bool VM::call(const ObjFunction &function, size_t argCount) {
+	if (function.arity != argCount) {
+		runtimeError(std::format("Expected {} arguments but got {}.",
+		                         function.arity, argCount));
+		return false;
+	}
+
+	if (callFrames.size() == max_callframes_size) {
+		runtimeError("Stack overflow.");
+		return false;
+	}
+
+	try {
+		callFrames.push_back(CallFrame{const_cast<ObjFunction &>(function)});
+	} catch (const std::bad_alloc &) {
+		runtimeError("could not allocate memory for call frame");
+		return false;
+	}
+
+	return true;
+}
+bool VM::callValue(const Value &callee, size_t argCount) {
+	if (auto *obj = std::get_if<Obj>(&callee); obj) {
+		if (auto *function = std::get_if<ObjFunction>(obj); function) {
+			return call(*function, argCount);
+		}
+	}
+	runtimeError("Can only call functions and classes.");
+	return false;
+}
+
 size_t VM::readIndex(std::span<const std::byte>::iterator &ip) {
 	auto instruction = static_cast<lox::OpCode>(*(ip));
 	size_t address = static_cast<uint8_t>(nextByte(ip));
@@ -167,10 +207,11 @@ Value VM::readConstant(std::span<const std::byte>::iterator &ip) {
 }
 
 InterpretResult VM::run() {
-	CallFrame &frame = callFrames.back();
-	auto &currentChunk = frame.function.chunk.get();
+	auto frame = std::ref(callFrames.back());
+	auto &currentChunk = frame.get().function.chunk.get();
 	auto code = currentChunk.code();
 	for (auto ip = code.begin(); ip != code.end(); ip++) {
+		auto instruction = static_cast<lox::OpCode>(peekByte(ip));
 		if (debug_trace_instruction) {
 			auto it = ip;
 			if (debug_stack) {
@@ -182,7 +223,7 @@ InterpretResult VM::run() {
 			}
 			debug::InstructionDisassembly(currentChunk, it);
 		}
-		auto instruction = static_cast<lox::OpCode>(peekByte(ip));
+
 		switch (instruction) {
 		case OpCode::OP_CONSTANT:
 		case OpCode::OP_CONSTANT_LONG: {
@@ -210,7 +251,11 @@ InterpretResult VM::run() {
 		case OpCode::OP_GET_LOCAL:
 		case OpCode::OP_GET_LOCAL_LONG: {
 			size_t index = readIndex(ip);
-			stack.push_back(frame.slots[index]);
+			if (frame.get().slots.size() <= index) {
+				runtimeError("tried to access an non existing local");
+				return InterpretResult::RUNTIME_ERROR;
+			}
+			stack.push_back(frame.get().slots[index]);
 			break;
 		}
 		case OpCode::OP_SET_LOCAL:
@@ -220,7 +265,11 @@ InterpretResult VM::run() {
 				runtimeError("Stack underflow");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			frame.slots[index] = stack.back();
+			if (frame.get().slots.size() <= index) {
+				runtimeError("tried to set an non existing local");
+				return InterpretResult::RUNTIME_ERROR;
+			}
+			frame.get().slots[index] = stack.back();
 			break;
 		}
 		case OpCode::OP_GET_GLOBAL:
@@ -310,19 +359,31 @@ InterpretResult VM::run() {
 		}
 		case OpCode::OP_JUMP: {
 			size_t offset = readIndex(ip);
-			frame.ip += offset;
+			frame.get().ip += offset;
 			break;
 		}
 		case OpCode::OP_JUMP_IF_FALSE: {
 			size_t offset = readIndex(ip);
 			if (!isTruthy(stack.back())) {
-				frame.ip += offset;
+				frame.get().ip += offset;
 			}
 			break;
 		}
 		case OpCode::OP_LOOP: {
 			size_t offset = readIndex(ip);
-			frame.ip -= offset;
+			frame.get().ip -= offset;
+			break;
+		}
+		case OpCode::OP_CALL: {
+			size_t argCount = readIndex(ip);
+			if (stack.empty()) {
+				runtimeError("Stack underflow.");
+				return InterpretResult::RUNTIME_ERROR;
+			}
+			if (!callValue(stack.back(), argCount)) {
+				return InterpretResult::RUNTIME_ERROR;
+			}
+			frame = std::ref(callFrames.back());
 			break;
 		}
 		case OpCode::OP_RETURN: {
@@ -339,6 +400,7 @@ InterpretResult VM::interpret(const ObjFunction &function) {
 	had_error = false;
 	callFrames.clear();
 	callFrames.push_back(CallFrame{const_cast<ObjFunction &>(function)});
+	call(callFrames.back().function, 0);
 	return run();
 }
 

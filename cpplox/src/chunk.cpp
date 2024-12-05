@@ -42,11 +42,10 @@ std::span<const std::byte> Chunk::code() const { return m_code; }
 std::size_t Chunk::getLine(std::size_t offset) const {
 	size_t line = 1;
 	for (const auto &[lineNumber, count] : m_lines) {
-		size_t end = offset + count - 1;
-		if (line <= end) {
+		if (offset < count) {
 			return lineNumber;
 		}
-		line += count;
+		offset -= count;
 	}
 	return line;
 }

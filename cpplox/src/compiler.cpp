@@ -21,11 +21,23 @@
 
 namespace lox {
 
-Compiler::Compiler() {
+Compiler::Compiler(Compiler *enclosing, FunctionType type)
+    : enclosing(enclosing), type(type) {
 	static bool rulesInitialized = false;
 	if (!rulesInitialized) {
 		rulesInitialized = true;
 		initializeRules();
+	}
+
+	if (enclosing != nullptr) {
+		// copy the parser state from the enclosing compiler
+		parser = enclosing->parser;
+		// copy the scanner state from the enclosing compiler
+		scanner = enclosing->scanner;
+	}
+
+	if (type != FunctionType::TYPE_SCRIPT) {
+		function.name = parser.previous.lexeme;
 	}
 }
 
@@ -47,7 +59,7 @@ void Compiler::initializeRules() {
 
 	// TOKEN_LEFT_PAREN
 	rules[static_cast<size_t>(Token::TokenType::TOKEN_LEFT_PAREN)] = {
-	    &Compiler::grouping, nullptr, Precedence::PREC_NONE};
+	    &Compiler::grouping, &Compiler::call, Precedence::PREC_CALL};
 	// TOKEN_RIGHT_PAREN
 	// TOKEN_LEFT_BRACE
 	// TOKEN_RIGHT_BRACE
@@ -282,6 +294,11 @@ ObjFunction &Compiler::endCompiler() {
 		    currentChunk(), function.name.empty() ? "<script>" : function.name);
 	}
 	emmitReturn();
+	if(enclosing != nullptr) {
+		// restore the parser and scanner state to the enclosing compiler
+		enclosing->parser = parser;
+		enclosing->scanner = scanner;
+	}
 	return function;
 }
 
@@ -351,6 +368,12 @@ void Compiler::binary(bool canAssign) {
 	default:
 		return; // unreachable
 	}
+}
+
+void Compiler::call(bool canAssign) {
+	uint8_t argCount = argumentList();
+	emmitByte(static_cast<std::byte>(OpCode::OP_CALL));
+	emmitByte(static_cast<std::byte>(argCount));
 }
 
 void Compiler::grouping(bool canAssign) {
@@ -544,7 +567,12 @@ size_t Compiler::parseVariable(std::string_view errorMessage) {
 	return identifierConstant(parser.previous);
 }
 
-void Compiler::markInitialized() { scope.locals.back().initialized = true; }
+void Compiler::markInitialized() {
+	if (scope.depth == 0) {
+		return;
+	}
+	scope.locals.back().initialized = true;
+}
 
 void Compiler::defineVariable(size_t global) {
 	// check if we are in the global scope
@@ -567,6 +595,21 @@ void Compiler::defineVariable(size_t global) {
 	}
 	bytes.push_back(static_cast<std::byte>(global & 0xff));
 	emmitBytes(bytes);
+}
+
+uint8_t Compiler::argumentList() {
+	uint8_t argCount = 0;
+	if (!check(Token::TokenType::TOKEN_RIGHT_PAREN)) {
+		do {
+			expression();
+			if (argCount == 255) {
+				error("Can't have more than 255 arguments.");
+			}
+			argCount++;
+		} while (match(Token::TokenType::TOKEN_COMMA));
+	}
+	consume(Token::TokenType::TOKEN_RIGHT_PAREN, "Expect ')' after arguments");
+	return argCount;
 }
 
 void Compiler::and_(bool canAssign) {
@@ -601,6 +644,41 @@ void Compiler::block() {
 		declaration();
 	}
 	consume(Token::TokenType::TOKEN_RIGHT_BRACE, "Expect '}' after block");
+}
+
+void Compiler::functionDefinition(FunctionType type) {
+	Compiler compiler{this, type};
+	compiler.beginScope();
+
+	compiler.consume(Token::TokenType::TOKEN_LEFT_PAREN,
+	                 "Expect '(' after function name");
+	if (!compiler.check(Token::TokenType::TOKEN_RIGHT_PAREN)) {
+		do {
+			compiler.function.arity++;
+			if (compiler.function.arity > 255) {
+				compiler.errorAtCurrent("Can't have more than 255 parameters.");
+			}
+			size_t constant = compiler.parseVariable("Expect parameter name");
+			compiler.defineVariable(constant);
+		} while (compiler.match(Token::TokenType::TOKEN_COMMA));
+	}
+
+	compiler.consume(Token::TokenType::TOKEN_RIGHT_PAREN,
+	                 "Expect ')' after parameters");
+	compiler.consume(Token::TokenType::TOKEN_LEFT_BRACE,
+	                 "Expect '{' before function body");
+	compiler.block();
+
+	ObjFunction function = compiler.endCompiler();
+	std::vector<std::byte> bytes = makeConstant(Value{function});
+	emmitBytes(bytes);
+}
+
+void Compiler::funDeclaration() {
+	size_t global = parseVariable("Expect function name");
+	markInitialized();
+	functionDefinition(FunctionType::TYPE_FUNCTION);
+	defineVariable(global);
 }
 
 void Compiler::varDeclaration() {
@@ -737,7 +815,9 @@ void Compiler::synchronize() {
 }
 
 void Compiler::declaration() {
-	if (match(Token::TokenType::TOKEN_VAR)) {
+	if (match(Token::TokenType::TOKEN_FUN)) {
+		funDeclaration();
+	} else if (match(Token::TokenType::TOKEN_VAR)) {
 		varDeclaration();
 	} else {
 		statement();
@@ -782,7 +862,8 @@ auto Compiler::compile(std::string_view source, FunctionType type)
 
 	ObjFunction &function = endCompiler();
 	return parser.hadError ? std::unexpected("Compilation error")
-	                       : std::expected<std::reference_wrapper<ObjFunction>, std::string>{function};
+	                       : std::expected<std::reference_wrapper<ObjFunction>,
+	                                       std::string>{function};
 }
 
 } // namespace lox

@@ -60,9 +60,8 @@ void ByteInstruction(std::string_view name, const lox::Chunk &chunk,
 	size_t address = getAddress(ip);
 
 	std::cout << std::format(
-	    "{:<4} {} '", cli::terminal::cyan_colored(name),
+	    "{:<4} {} ''\n", cli::terminal::cyan_colored(name),
 	    cli::terminal::yellow_colored(std::format("{:4d}", address)));
-	std::cout << "'\n";
 }
 
 void JumpInstruction(std::string_view name, const lox::Chunk &chunk,
@@ -157,6 +156,8 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 		return JumpInstruction("OP_JUMP_IF_FALSE", chunk, ip, 1);
 	case OpCode::OP_LOOP:
 		return JumpInstruction("OP_LOOP", chunk, ip, -1);
+	case OpCode::OP_CALL:
+		return ByteInstruction("OP_CALL", chunk, ip);
 	case OpCode::OP_RETURN:
 		return SimpleInstruction("OP_RETURN", ip);
 	}
