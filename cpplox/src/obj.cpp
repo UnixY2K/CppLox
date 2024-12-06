@@ -18,6 +18,8 @@ ObjFunction ObjFunction::clone() const {
 
 std::string ObjFunction::toString() const {
 	if (name.empty()) {
+		return "<lambda>";
+	} else if (name == "<script>") {
 		return "<script>";
 	}
 	return std::format("<fn {}>", name);

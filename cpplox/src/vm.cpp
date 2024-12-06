@@ -1,3 +1,4 @@
+#include "cpplox/terminal.hpp"
 #include <cpplox/private/constants.hpp>
 
 #include <cpplox/chunk.hpp>
@@ -16,7 +17,9 @@
 
 namespace lox {
 
-VM::VM() : debug_trace_instruction(constants::debug_trace_instruction), debug_trace_stack(constants::debug_trace_stack) {}
+VM::VM()
+    : debug_trace_instruction(constants::debug_trace_instruction),
+      debug_trace_stack(constants::debug_trace_stack) {}
 
 void VM::runtimeError(std::string_view message) {
 	std::cerr << std::format("{}\n", message);
@@ -26,12 +29,11 @@ void VM::runtimeError(std::string_view message) {
 		auto &chunk = *function.chunk;
 		size_t offset = frame.ip - chunk.code().begin();
 		size_t line = chunk.getLine(offset);
-		std::cerr << std::format("[line {}] in ", line);
-		if (function.name.empty()) {
-			std::cerr << "script\n";
-		} else {
-			std::cerr << std::format("function {}\n", function.name);
-		}
+		std::string name = function.toString();
+		std::cerr << std::format(
+		    "{} in {}\n",
+		    cli::terminal::green_colored(std::format("[Line {}]", line)),
+		    cli::terminal::yellow_colored(name));
 	}
 	had_error = true;
 	stack.clear();
@@ -454,8 +456,7 @@ InterpretResult VM::run() {
 InterpretResult VM::interpret(const ObjFunction &function) {
 	had_error = false;
 	callFrames.clear();
-	callFrames.emplace_back(std::make_unique<CallFrame>(function));
-	call((*callFrames.back()).function, 0);
+	call(function, 0);
 	return run();
 }
 
