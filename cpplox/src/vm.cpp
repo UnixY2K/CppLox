@@ -419,11 +419,13 @@ InterpretResult VM::run() {
 		}
 		case OpCode::OP_CALL: {
 			size_t argCount = readIndex(ip);
-			if (stack.empty()) {
+			if (stack.size() < argCount + 1) {
 				runtimeError("Stack underflow.");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			if (!callValue((*stack.back()), argCount)) {
+			size_t calleeIndex = stack.size() - argCount - 1;
+			Value &callee = *stack[calleeIndex];
+			if (!callValue(callee, argCount)) {
 				return InterpretResult::RUNTIME_ERROR;
 			}
 			run();
