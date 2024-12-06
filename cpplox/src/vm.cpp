@@ -379,19 +379,19 @@ InterpretResult VM::run() {
 		}
 		case OpCode::OP_JUMP: {
 			size_t offset = readIndex(ip);
-			callFrame.ip += offset;
+			ip += offset;
 			break;
 		}
 		case OpCode::OP_JUMP_IF_FALSE: {
 			size_t offset = readIndex(ip);
 			if (!stack.back().isTruthy()) {
-				callFrame.ip += offset;
+				ip += offset;
 			}
 			break;
 		}
 		case OpCode::OP_LOOP: {
 			size_t offset = readIndex(ip);
-			callFrame.ip -= offset;
+			ip -= offset;
 			break;
 		}
 		case OpCode::OP_CALL: {
