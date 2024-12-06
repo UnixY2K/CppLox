@@ -117,4 +117,36 @@ int runFile(std::string_view path) {
 
 	return 0;
 }
+
+int compileFile(std::string_view path) {
+	// check if the file exists
+	if (!std::filesystem::exists(path)) {
+		std::cerr << std::format("File '{}' does not exist\n", path);
+		return 1;
+	}
+	std::ifstream file(path.data());
+	if (!file.is_open()) {
+		std::cerr << std::format("Could not open file '{}'\n", path);
+		return 1;
+	}
+	{
+		size_t size = std::filesystem::file_size(path);
+		std::string source;
+		source.reserve(size);
+		std::copy(std::istreambuf_iterator<char>(file),
+		          std::istreambuf_iterator<char>(), std::back_inserter(source));
+		Compiler compiler;
+		auto script = compiler.compile(source);
+		if (!script) {
+			std::cerr << script.error() << '\n';
+			return 65;
+		} else {
+			auto &chunk = *script->get().chunk.get();
+			debug::ChunkDisassembly(chunk, path);
+		}
+	}
+
+	return 0;
+}
+
 } // namespace lox::cli
