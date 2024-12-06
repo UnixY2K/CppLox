@@ -11,7 +11,7 @@ class Value {
 	using Value_t = std::variant<bool, double, Obj, std::monostate>;
 
   public:
-	Value() = default;
+	Value();
 	Value(bool value);
 	Value(double value);
 	Value(const std::string_view value);

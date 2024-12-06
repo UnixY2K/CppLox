@@ -8,6 +8,8 @@
 
 namespace lox {
 
+Value::Value() : value(std::monostate{}) {}
+
 Value::Value(bool value) : value(value) {}
 
 Value::Value(double value) : value(value) {}
