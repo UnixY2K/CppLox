@@ -44,8 +44,8 @@ void ConstantInstruction(std::string_view name, const lox::Chunk &chunk,
 	auto &value = chunk.constants()[address];
 	std::cout << std::format(
 	    "{:<26} {}      '{}'\n", cli::terminal::cyan_colored(name),
-	    cli::terminal::yellow_colored(std::format("{:<4d}", address)),
-	    cli::terminal::green_colored(std::format("{}", value.toString())));
+	    cli::terminal::gray_colored(std::format("{:<4d}", address)),
+	    cli::terminal::yellow_colored(std::format("{}", value.toString())));
 }
 
 void SimpleInstruction(std::string_view name,
@@ -68,8 +68,9 @@ void JumpInstruction(std::string_view name, const lox::Chunk &chunk,
 	size_t baseoffset = std::distance(chunk.code().begin(), ip);
 	size_t offset = baseoffset + sign * jump + 1;
 	std::cout << std::format(
-	    "{:<26} {} -> {}\n", cli::terminal::cyan_colored(name),
+	    "{:<26} {} {} {}\n", cli::terminal::cyan_colored(name),
 	    cli::terminal::green_colored(std::format("0x{:04X}", baseoffset)),
+		cli::terminal::gray_colored("->"),
 	    cli::terminal::green_colored(std::format("0x{:04X}", offset)));
 }
 
@@ -84,7 +85,7 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 	auto instruction = static_cast<lox::OpCode>(peekByte(ip));
 	// print line
 	if (offset > 0 && chunk.getLine(offset) == chunk.getLine(offset - 1)) {
-		std::cout << std::format("   | ");
+		std::cout << cli::terminal::gray_colored("   | ");
 	} else {
 		std::cout << std::format("{:4d} ", chunk.getLine(offset));
 	}

@@ -9,6 +9,8 @@ std::string red_colored(std::string_view message);
 
 std::string cyan_colored(std::string_view message);
 
+std::string gray_colored(std::string_view message);
+
 std::string yellow_colored(std::string_view message);
 
 std::string green_colored(std::string_view message);

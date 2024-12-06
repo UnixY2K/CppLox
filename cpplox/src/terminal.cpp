@@ -15,6 +15,10 @@ std::string cyan_colored(std::string_view message) {
 	return std::format("\033[96m{}\033[0m", message);
 }
 
+std::string gray_colored(std::string_view message) {
+	return std::format("\033[90m{}\033[0m", message);
+}
+
 std::string yellow_colored(std::string_view message) {
 	return std::format("\033[33m{}\033[0m", message);
 }
