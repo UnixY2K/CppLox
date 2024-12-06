@@ -1,0 +1,2 @@
+option('DEBUG_trace_instruction', type : 'boolean', value : false , description : 'Trace instruction execution')
+option('DEBUG_trace_stack', type : 'boolean', value : false , description : 'Trace stack contents')

@@ -54,10 +54,13 @@ class VM {
 	InterpretResult run();
 
   public:
+
+	VM();
+
 	InterpretResult interpret(const ObjFunction &function);
 	InterpretResult interpret(std::string_view source);
-	bool debug_trace_instruction = true;
-	bool debug_stack = false;
+	bool debug_trace_instruction;
+	bool debug_trace_stack;
 	size_t max_callframes_size = 1024;
 
   private:

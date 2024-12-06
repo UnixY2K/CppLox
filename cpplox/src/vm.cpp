@@ -1,3 +1,5 @@
+#include <cpplox/private/constants.hpp>
+
 #include <cpplox/chunk.hpp>
 #include <cpplox/compiler.hpp>
 #include <cpplox/debug.hpp>
@@ -13,6 +15,8 @@
 #include <variant>
 
 namespace lox {
+
+VM::VM() : debug_trace_instruction(constants::debug_trace_instruction), debug_trace_stack(constants::debug_trace_stack) {}
 
 void VM::runtimeError(std::string_view message) {
 	std::cerr << std::format("{}\n", message);
@@ -237,7 +241,7 @@ InterpretResult VM::run() {
 		auto instruction = static_cast<lox::OpCode>(peekByte(ip));
 		if (debug_trace_instruction) {
 			auto it = ip;
-			if (debug_stack) {
+			if (debug_trace_stack) {
 				std::cout << "		  ";
 				for (auto &slot : stack) {
 					std::cout << std::format("[ {} ]", (*slot).toString());
