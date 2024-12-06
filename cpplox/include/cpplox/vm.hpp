@@ -4,6 +4,7 @@
 #include <cpplox/value.hpp>
 
 #include <cstddef>
+#include <memory>
 #include <optional>
 #include <string_view>
 #include <unordered_map>
@@ -60,9 +61,9 @@ class VM {
 	size_t max_callframes_size = 1024;
 
   private:
-	std::vector<CallFrame> callFrames;
 	bool had_error = false;
-	std::vector<Value> stack;
+	std::vector<std::unique_ptr<CallFrame>> callFrames;
+	std::vector<std::unique_ptr<Value>> stack;
 	std::unordered_map<std::string, Value> globals;
 	std::span<const std::byte>::iterator ip;
 };

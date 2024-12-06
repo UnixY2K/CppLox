@@ -17,7 +17,7 @@ namespace lox {
 void VM::runtimeError(std::string_view message) {
 	std::cerr << std::format("{}\n", message);
 	for (auto it = callFrames.rbegin(); it != callFrames.rend(); it++) {
-		auto &frame = *it;
+		auto &frame = **it;
 		auto &function = frame.function;
 		auto &chunk = *function.chunk;
 		size_t offset = frame.ip - chunk.code().begin();
@@ -45,24 +45,26 @@ std::byte VM::peekByte(std::span<const std::byte>::iterator &ip) { return *ip; }
 
 void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 	OpCode instruction = static_cast<OpCode>(peekByte(ip));
-	auto vb = stack.back().clone();
+	auto vb = (*stack.back()).clone();
 	stack.pop_back();
-	auto va = stack.back().clone();
+	auto va = (*stack.back()).clone();
 	stack.pop_back();
 	auto onlyNumbers = [this](const auto &, const auto &) {
 		runtimeError("Operands must be numbers.");
 	};
 	switch (instruction) {
 	case OpCode::OP_EQUAL:
-		stack.emplace_back(va.equals(vb));
+		stack.emplace_back(std::make_unique<Value>(va.equals(vb)));
 		break;
 	case OpCode::OP_NOT_EQUAL:
-		stack.emplace_back(!va.equals(vb));
+		stack.emplace_back(std::make_unique<Value>(!va.equals(vb)));
 		break;
 	case OpCode::OP_GREATER:
 		std::visit(
 		    overloads{
-		        [this](double a, double b) { stack.push_back(a > b); },
+		        [this](double a, double b) {
+			        stack.push_back(std::make_unique<Value>(a > b));
+		        },
 		        onlyNumbers,
 		    },
 		    va.value, vb.value);
@@ -70,7 +72,9 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 	case OpCode::OP_GREATER_EQUAL:
 		std::visit(
 		    overloads{
-		        [this](double a, double b) { stack.push_back(a >= b); },
+		        [this](double a, double b) {
+			        stack.push_back(std::make_unique<Value>(a >= b));
+		        },
 		        onlyNumbers,
 		    },
 		    va.value, vb.value);
@@ -78,7 +82,9 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 	case OpCode::OP_LESS: {
 		std::visit(
 		    overloads{
-		        [this](double a, double b) { stack.push_back(a < b); },
+		        [this](double a, double b) {
+			        stack.push_back(std::make_unique<Value>(a < b));
+		        },
 		        onlyNumbers,
 		    },
 		    va.value, vb.value);
@@ -87,7 +93,9 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 	case OpCode::OP_LESS_EQUAL:
 		std::visit(
 		    overloads{
-		        [this](double a, double b) { stack.push_back(a <= b); },
+		        [this](double a, double b) {
+			        stack.push_back(std::make_unique<Value>(a <= b));
+		        },
 		        onlyNumbers,
 		    },
 		    va.value, vb.value);
@@ -95,12 +103,15 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 	case OpCode::OP_ADD:
 		std::visit(
 		    overloads{
-		        [this](double a, double b) { stack.push_back(a + b); },
+		        [this](double a, double b) {
+			        stack.push_back(std::make_unique<Value>(a + b));
+		        },
 		        [&](const Obj &a, const Obj &b) {
 			        std::visit(
 			            overloads{
 			                [this](const std::string &a, const std::string &b) {
-				                stack.emplace_back(Value{a + b});
+				                stack.emplace_back(
+				                    std::make_unique<Value>(a + b));
 			                },
 			                [this](const auto &, const auto &) {
 				                runtimeError("Operands must be two numbers or "
@@ -119,7 +130,9 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 	case OpCode::OP_SUBTRACT:
 		std::visit(
 		    overloads{
-		        [this](double a, double b) { stack.push_back(a - b); },
+		        [this](double a, double b) {
+			        stack.push_back(std::make_unique<Value>(a - b));
+		        },
 		        onlyNumbers,
 		    },
 		    va.value, vb.value);
@@ -127,7 +140,9 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 	case OpCode::OP_MULTIPLY:
 		std::visit(
 		    overloads{
-		        [this](double a, double b) { stack.push_back(a * b); },
+		        [this](double a, double b) {
+			        stack.push_back(std::make_unique<Value>(a * b));
+		        },
 		        onlyNumbers,
 		    },
 		    va.value, vb.value);
@@ -140,7 +155,7 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 				        runtimeError("Division by zero.");
 				        return;
 			        }
-			        stack.push_back(a / b);
+			        stack.push_back(std::make_unique<Value>(a / b));
 		        },
 		        onlyNumbers,
 		    },
@@ -164,7 +179,7 @@ bool VM::call(const ObjFunction &function, size_t argCount) {
 	}
 
 	try {
-		callFrames.emplace_back(CallFrame{function});
+		callFrames.emplace_back(std::make_unique<CallFrame>(function));
 	} catch (const std::bad_alloc &) {
 		runtimeError("could not allocate memory for call frame");
 		return false;
@@ -204,7 +219,7 @@ size_t VM::readIndex(std::span<const std::byte>::iterator &ip) {
 
 auto VM::readConstant(std::span<const std::byte>::iterator &ip)
     -> std::optional<std::reference_wrapper<const Value>> {
-	auto &chunk = *callFrames.back().function.chunk;
+	auto &chunk = *(*callFrames.back()).function.chunk;
 	size_t address = readIndex(ip);
 	if (address >= chunk.constants().size()) {
 		runtimeError("Invalid constant address.");
@@ -215,7 +230,7 @@ auto VM::readConstant(std::span<const std::byte>::iterator &ip)
 }
 
 InterpretResult VM::run() {
-	auto &callFrame = callFrames.back();
+	auto &callFrame = *callFrames.back();
 	auto &currentChunk = *callFrame.function.chunk;
 	auto code = currentChunk.code();
 	for (auto ip = code.begin(); ip != code.end(); ip++) {
@@ -225,7 +240,7 @@ InterpretResult VM::run() {
 			if (debug_stack) {
 				std::cout << "		  ";
 				for (auto &slot : stack) {
-					std::cout << std::format("[ {} ]", slot.toString());
+					std::cout << std::format("[ {} ]", (*slot).toString());
 				}
 				std::cout << "\n";
 			}
@@ -239,17 +254,18 @@ InterpretResult VM::run() {
 			if (!constant.has_value()) {
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			stack.emplace_back(constant->get().clone());
+			stack.emplace_back(
+			    std::make_unique<Value>(constant->get().clone()));
 			break;
 		}
 		case OpCode::OP_NIL:
-			stack.emplace_back(Value{});
+			stack.emplace_back(std::make_unique<Value>());
 			break;
 		case OpCode::OP_TRUE:
-			stack.emplace_back(true);
+			stack.emplace_back(std::make_unique<Value>(true));
 			break;
 		case OpCode::OP_FALSE:
-			stack.emplace_back(false);
+			stack.emplace_back(std::make_unique<Value>(false));
 			break;
 		case OpCode::OP_POP: {
 			if (stack.empty()) {
@@ -266,7 +282,8 @@ InterpretResult VM::run() {
 				runtimeError("tried to access an non existing local");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			stack.emplace_back(callFrame.slots[index].clone());
+			stack.emplace_back(
+			    std::make_unique<Value>(callFrame.slots[index].clone()));
 			break;
 		}
 		case OpCode::OP_SET_LOCAL:
@@ -280,7 +297,7 @@ InterpretResult VM::run() {
 				runtimeError("tried to set an non existing local");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			callFrame.slots[index] = stack.back().clone();
+			callFrame.slots[index] = (*stack.back()).clone();
 			break;
 		}
 		case OpCode::OP_GET_GLOBAL:
@@ -291,7 +308,7 @@ InterpretResult VM::run() {
 			}
 			std::string name = value->get().toString();
 			if (auto it = globals.find(name); it != globals.end()) {
-				stack.emplace_back(it->second.clone());
+				stack.emplace_back(std::make_unique<Value>(it->second.clone()));
 			} else {
 				runtimeError(std::format("Undefined variable '{}'", name));
 				return InterpretResult::RUNTIME_ERROR;
@@ -309,7 +326,7 @@ InterpretResult VM::run() {
 				runtimeError("Stack underflow.");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			globals[name] = stack.back().clone();
+			globals[name] = (*stack.back()).clone();
 			stack.pop_back();
 			break;
 		}
@@ -321,7 +338,7 @@ InterpretResult VM::run() {
 			}
 			std::string name = value->get().toString();
 			if (auto it = globals.find(name); it != globals.end()) {
-				globals[name] = stack.back().clone();
+				globals[name] = (*stack.back()).clone();
 			} else {
 				runtimeError(std::format("Undefined variable '{}'", name));
 				return InterpretResult::RUNTIME_ERROR;
@@ -351,7 +368,7 @@ InterpretResult VM::run() {
 				runtimeError("Stack underflow.");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			auto &value = stack.back();
+			auto &value = *stack.back();
 			if (!std::holds_alternative<double>(value.value)) {
 				runtimeError("Operand must be a number.");
 				return InterpretResult::RUNTIME_ERROR;
@@ -364,7 +381,7 @@ InterpretResult VM::run() {
 				runtimeError("Stack underflow.");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			auto &value = stack.back();
+			auto &value = *stack.back();
 			value = !value.isTruthy();
 			break;
 		}
@@ -373,7 +390,7 @@ InterpretResult VM::run() {
 				runtimeError("Stack underflow.");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			std::cout << std::format("{}\n", stack.back().toString());
+			std::cout << std::format("{}\n", (*stack.back()).toString());
 			stack.pop_back();
 			break;
 		}
@@ -384,7 +401,7 @@ InterpretResult VM::run() {
 		}
 		case OpCode::OP_JUMP_IF_FALSE: {
 			size_t offset = readIndex(ip);
-			if (!stack.back().isTruthy()) {
+			if (!(*stack.back()).isTruthy()) {
 				ip += offset;
 			}
 			break;
@@ -400,9 +417,10 @@ InterpretResult VM::run() {
 				runtimeError("Stack underflow.");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			if (!callValue(stack.back(), argCount)) {
+			if (!callValue((*stack.back()), argCount)) {
 				return InterpretResult::RUNTIME_ERROR;
 			}
+			run();
 			break;
 		}
 		case OpCode::OP_RETURN: {
@@ -410,7 +428,7 @@ InterpretResult VM::run() {
 				runtimeError("Stack underflow.");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			Value result = stack.back().clone();
+			Value result = (*stack.back()).clone();
 			callFrames.pop_back();
 			if (callFrames.empty()) {
 				if (stack.empty()) {
@@ -432,8 +450,8 @@ InterpretResult VM::run() {
 InterpretResult VM::interpret(const ObjFunction &function) {
 	had_error = false;
 	callFrames.clear();
-	callFrames.emplace_back(CallFrame{function});
-	call(callFrames.back().function, 0);
+	callFrames.emplace_back(std::make_unique<CallFrame>(function));
+	call((*callFrames.back()).function, 0);
 	return run();
 }
 
@@ -441,6 +459,7 @@ InterpretResult VM::interpret(std::string_view source) {
 	auto compiler = Compiler{};
 	if (const auto result = compiler.compile(source); result.has_value()) {
 		auto &function = result->get();
+		function.name = "<script>";
 		return interpret(function);
 	} else {
 		return InterpretResult::COMPILE_ERROR;
