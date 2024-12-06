@@ -43,11 +43,9 @@ void ConstantInstruction(std::string_view name, const lox::Chunk &chunk,
 
 	auto &value = chunk.constants()[address];
 	std::cout << std::format(
-	    "{:<4} {} '", cli::terminal::cyan_colored(name),
-	    cli::terminal::yellow_colored(std::format("{:4d}", address)));
-	std::cout << cli::terminal::green_colored(
-	    std::format("{}", value.toString()));
-	std::cout << "'\n";
+	    "{:<26} {}      '{}'\n", cli::terminal::cyan_colored(name),
+	    cli::terminal::yellow_colored(std::format("{:<4d}", address)),
+	    cli::terminal::green_colored(std::format("{}", value.toString())));
 }
 
 void SimpleInstruction(std::string_view name,
@@ -60,8 +58,8 @@ void ByteInstruction(std::string_view name, const lox::Chunk &chunk,
 	size_t address = getAddress(ip);
 
 	std::cout << std::format(
-	    "{:<4} {} ''\n", cli::terminal::cyan_colored(name),
-	    cli::terminal::yellow_colored(std::format("{:4d}", address)));
+	    "{:<26} {}\n", cli::terminal::cyan_colored(name),
+	    cli::terminal::yellow_colored(std::format("{:<4d}", address)));
 }
 
 void JumpInstruction(std::string_view name, const lox::Chunk &chunk,
@@ -70,7 +68,7 @@ void JumpInstruction(std::string_view name, const lox::Chunk &chunk,
 	size_t baseoffset = std::distance(chunk.code().begin(), ip);
 	size_t offset = baseoffset + sign * jump + 1;
 	std::cout << std::format(
-	    "{:<4} {} -> {}\n", cli::terminal::cyan_colored(name),
+	    "{:<26} {} -> {}\n", cli::terminal::cyan_colored(name),
 	    cli::terminal::green_colored(std::format("0x{:04X}", baseoffset)),
 	    cli::terminal::green_colored(std::format("0x{:04X}", offset)));
 }
