@@ -7,6 +7,8 @@ namespace lox {
 
 struct Token {
 	enum class TokenType {
+		// NON Used, only to hint that the token is not initialized
+		TOKEN_UNINITIALIZED,
 		// Single-character tokens.
 		TOKEN_LEFT_PAREN,
 		TOKEN_RIGHT_PAREN,

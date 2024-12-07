@@ -48,8 +48,8 @@ class Compiler {
 	void initializeRules();
 
 	struct Parser {
-		Token current;
 		Token previous;
+		Token current;
 		bool hadError = false;
 		bool panicMode = false;
 	};

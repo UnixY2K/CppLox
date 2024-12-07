@@ -59,7 +59,7 @@ void ByteInstruction(std::string_view name, const lox::Chunk &chunk,
 
 	std::cout << std::format(
 	    "{:<26} {}\n", cli::terminal::cyan_colored(name),
-	    cli::terminal::yellow_colored(std::format("{:<4d}", address)));
+	    cli::terminal::gray_colored(std::format("{:<4d}", address)));
 }
 
 void JumpInstruction(std::string_view name, const lox::Chunk &chunk,
