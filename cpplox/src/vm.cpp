@@ -290,7 +290,8 @@ InterpretResult VM::run() {
 		case OpCode::OP_GET_LOCAL:
 		case OpCode::OP_GET_LOCAL_LONG: {
 			size_t relativeIndex = readIndex(ip);
-			size_t index = callFrame.stackOffset + relativeIndex;
+			size_t index = callFrame.stackOffset - callFrame.function.arity +
+			               relativeIndex;
 			if (stack.size() <= index) {
 				runtimeError("tried to access an non existing local");
 				return InterpretResult::RUNTIME_ERROR;
@@ -302,7 +303,8 @@ InterpretResult VM::run() {
 		case OpCode::OP_SET_LOCAL:
 		case OpCode::OP_SET_LOCAL_LONG: {
 			size_t relativeIndex = readIndex(ip);
-			size_t index = callFrame.stackOffset + relativeIndex;
+			size_t index = callFrame.stackOffset - callFrame.function.arity +
+			               relativeIndex;
 			if (stack.empty()) {
 				runtimeError("Stack underflow");
 				return InterpretResult::RUNTIME_ERROR;
@@ -436,20 +438,27 @@ InterpretResult VM::run() {
 			if (!callValue(callee, argCount)) {
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			run();
+			auto result = run();
+			if (result != InterpretResult::OK) {
+				return result;
+			}
 			break;
 		}
 		case OpCode::OP_RETURN: {
-			if (stack.empty()) {
+			// pop all the elements from the stack until the last frame
+			size_t top = callFrame.stackOffset - callFrame.function.arity;
+			if (stack.size() < top) {
 				runtimeError("Stack underflow.");
 				return InterpretResult::RUNTIME_ERROR;
 			}
 			Value result = (*stack.back()).clone();
-			// pop all the elements from the stack until the last frame
-			while (stack.size() > callFrame.stackOffset - callFrame.function.arity) {
-				stack.pop_back();
-			}
+			stack.erase(stack.begin() + top, stack.end());
 			stack.emplace_back(std::make_unique<Value>(result));
+			if (callFrames.empty()) {
+				runtimeError("CallFrames underflow.");
+				return InterpretResult::RUNTIME_ERROR;
+			}
+			callFrames.pop_back();
 			return InterpretResult::OK;
 		}
 		}

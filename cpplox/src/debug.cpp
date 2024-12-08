@@ -41,11 +41,15 @@ void ConstantInstruction(std::string_view name, const lox::Chunk &chunk,
                          std::span<const std::byte>::iterator &ip) {
 	size_t address = getAddress(ip);
 
-	auto &value = chunk.constants()[address];
+	std::string valueString = "?INVALID?";
+	if (address < chunk.constants().size()) {
+		auto &value = chunk.constants()[address];
+		valueString = value.toString();
+	}
 	std::cout << std::format(
 	    "{:<26} {}      '{}'\n", cli::terminal::cyan_colored(name),
 	    cli::terminal::gray_colored(std::format("{:<4d}", address)),
-	    cli::terminal::yellow_colored(std::format("{}", value.toString())));
+	    cli::terminal::yellow_colored(std::format("{}", valueString)));
 }
 
 void SimpleInstruction(std::string_view name,
@@ -70,7 +74,7 @@ void JumpInstruction(std::string_view name, const lox::Chunk &chunk,
 	std::cout << std::format(
 	    "{:<26} {} {} {}\n", cli::terminal::cyan_colored(name),
 	    cli::terminal::green_colored(std::format("0x{:04X}", baseoffset)),
-		cli::terminal::gray_colored("->"),
+	    cli::terminal::gray_colored("->"),
 	    cli::terminal::green_colored(std::format("0x{:04X}", offset)));
 }
 

@@ -16,7 +16,7 @@ struct CallFrame {
 
 	CallFrame(const ObjFunction &function, size_t stackOffset)
 	    : function(function), ip(function.chunk->code().begin()),
-	      stackOffset(stackOffset + function.arity - 2) {}
+	      stackOffset(stackOffset) {}
 
 	// move constructor
 	CallFrame(CallFrame &&other) noexcept
