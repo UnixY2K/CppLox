@@ -185,7 +185,8 @@ bool VM::call(const ObjFunction &function, size_t argCount) {
 	}
 
 	try {
-		callFrames.emplace_back(std::make_unique<CallFrame>(function));
+		callFrames.emplace_back(
+		    std::make_unique<CallFrame>(function, stack.size()));
 	} catch (const std::bad_alloc &) {
 		runtimeError("could not allocate memory for call frame");
 		return false;
@@ -239,17 +240,22 @@ InterpretResult VM::run() {
 	auto &callFrame = *callFrames.back();
 	auto &currentChunk = *callFrame.function.chunk;
 	auto code = currentChunk.code();
+	std::string_view line_glyph = debug_trace_instruction ? "|" : " ";
 	for (auto ip = code.begin(); ip != code.end(); ip++) {
 		auto instruction = static_cast<lox::OpCode>(peekByte(ip));
+		if (debug_trace_stack) {
+			std::cout << std::format("{}  {}	",
+			                         cli::terminal::orange_colored("#STACK#"),
+			                         cli::terminal::gray_colored(line_glyph));
+			for (auto &slot : stack) {
+				std::cout << std::format(
+				    "[ {} ]",
+				    cli::terminal::yellow_colored((*slot).toString()));
+			}
+			std::cout << "\n";
+		}
 		if (debug_trace_instruction) {
 			auto it = ip;
-			if (debug_trace_stack) {
-				std::cout << "		  ";
-				for (auto &slot : stack) {
-					std::cout << std::format("[ {} ]", (*slot).toString());
-				}
-				std::cout << "\n";
-			}
 			debug::InstructionDisassembly(currentChunk, it);
 		}
 
@@ -283,27 +289,29 @@ InterpretResult VM::run() {
 		}
 		case OpCode::OP_GET_LOCAL:
 		case OpCode::OP_GET_LOCAL_LONG: {
-			size_t index = readIndex(ip);
-			if (callFrame.slots.size() <= index) {
+			size_t relativeIndex = readIndex(ip);
+			size_t index = callFrame.stackOffset + relativeIndex;
+			if (stack.size() <= index) {
 				runtimeError("tried to access an non existing local");
 				return InterpretResult::RUNTIME_ERROR;
 			}
 			stack.emplace_back(
-			    std::make_unique<Value>(callFrame.slots[index].clone()));
+			    std::make_unique<Value>((*stack[index]).clone()));
 			break;
 		}
 		case OpCode::OP_SET_LOCAL:
 		case OpCode::OP_SET_LOCAL_LONG: {
-			size_t index = readIndex(ip);
+			size_t relativeIndex = readIndex(ip);
+			size_t index = callFrame.stackOffset + relativeIndex;
 			if (stack.empty()) {
 				runtimeError("Stack underflow");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			if (callFrame.slots.size() <= index) {
+			if (stack.size() <= index) {
 				runtimeError("tried to set an non existing local");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			callFrame.slots[index] = (*stack.back()).clone();
+			(*stack[index]) = (*stack.back()).clone();
 			break;
 		}
 		case OpCode::OP_GET_GLOBAL:
@@ -437,15 +445,12 @@ InterpretResult VM::run() {
 				return InterpretResult::RUNTIME_ERROR;
 			}
 			Value result = (*stack.back()).clone();
-			callFrames.pop_back();
-			if (callFrames.empty()) {
-				if (stack.empty()) {
-					runtimeError("Stack underflow.");
-					return InterpretResult::RUNTIME_ERROR;
-				}
+			// pop all the elements from the stack until the last frame
+			while (stack.size() > callFrame.stackOffset - callFrame.function.arity) {
 				stack.pop_back();
-				return InterpretResult::OK;
 			}
+			stack.emplace_back(std::make_unique<Value>(result));
+			return InterpretResult::OK;
 		}
 		}
 		if (had_error) {

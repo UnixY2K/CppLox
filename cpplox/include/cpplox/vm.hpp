@@ -14,15 +14,16 @@ enum class InterpretResult { OK, COMPILE_ERROR, RUNTIME_ERROR };
 
 struct CallFrame {
 
-	CallFrame(const ObjFunction &function)
+	CallFrame(const ObjFunction &function, size_t stackOffset)
 	    : function(function), ip(function.chunk->code().begin()),
-	      slots(function.arity) {}
+	      stackOffset(stackOffset + function.arity - 2) {}
 
 	// move constructor
 	CallFrame(CallFrame &&other) noexcept
 	    : function(other.function), ip(other.ip),
-	      slots(std::move(other.slots)) {
+	      stackOffset(other.stackOffset) {
 		other.ip = other.function.chunk->code().begin();
+		other.stackOffset = 0;
 	}
 
 	// callframes are not copyable
@@ -30,7 +31,7 @@ struct CallFrame {
 
 	const ObjFunction &function;
 	std::span<const std::byte>::iterator ip;
-	std::vector<Value> slots;
+	size_t stackOffset = 0;
 };
 
 class VM {
@@ -54,7 +55,6 @@ class VM {
 	InterpretResult run();
 
   public:
-
 	VM();
 
 	InterpretResult interpret(const ObjFunction &function);
