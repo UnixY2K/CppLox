@@ -446,7 +446,7 @@ InterpretResult VM::run() {
 		}
 		case OpCode::OP_RETURN: {
 			// pop all the elements from the stack until the last frame
-			size_t top = callFrame.stackOffset - callFrame.function.arity;
+			size_t top = callFrame.stackOffset - callFrame.function.arity - 1;
 			if (stack.size() < top) {
 				runtimeError("Stack underflow.");
 				return InterpretResult::RUNTIME_ERROR;
@@ -472,6 +472,7 @@ InterpretResult VM::run() {
 InterpretResult VM::interpret(const ObjFunction &function) {
 	had_error = false;
 	callFrames.clear();
+	stack.push_back(std::make_unique<Value>(function.clone()));
 	call(function, 0);
 	return run();
 }
