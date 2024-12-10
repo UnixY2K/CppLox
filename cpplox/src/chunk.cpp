@@ -51,4 +51,29 @@ std::size_t Chunk::getLine(std::size_t offset) const {
 }
 std::span<const Value> Chunk::constants() const { return m_constants; }
 
+bool Chunk::operator==(const Chunk &other) const {
+	if (m_code.size() != other.m_code.size() ||
+	    m_constants.size() != other.m_constants.size() ||
+	    m_lines.size() != other.m_lines.size()) {
+		return false;
+	}
+	for (size_t i = 0; i < m_code.size(); ++i) {
+		if (m_code[i] != other.m_code[i]) {
+			return false;
+		}
+	}
+	for (size_t i = 0; i < m_lines.size(); ++i) {
+		if (m_lines[i] != other.m_lines[i]) {
+			return false;
+		}
+	}
+	for (size_t i = 0; i < m_constants.size(); ++i) {
+		if (m_constants[i].equals(other.m_constants[i])) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 } // namespace lox

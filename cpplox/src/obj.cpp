@@ -5,7 +5,22 @@
 
 namespace lox {
 
+bool ObjNative::operator==(const ObjNative &other) const {
+	return function == other.function && name == other.name;
+}
+
+std::string ObjNative::toString() const {
+	return std::format("<native fn {}>", name);
+}
+
 ObjFunction::ObjFunction() : chunk(std::make_unique<Chunk>()) {}
+
+bool ObjFunction::operator==(const ObjFunction &other) const {
+	if (name != other.name || arity != other.arity) {
+		return false;
+	}
+	return *chunk == *other.chunk;
+}
 
 ObjFunction ObjFunction::clone() const {
 	ObjFunction result;
@@ -29,6 +44,8 @@ Obj::Obj(std::string value) : value(value) {}
 
 Obj::Obj(const ObjFunction &value) : value{value.clone()} {}
 
+Obj::Obj(const ObjNative &value) : value(value) {}
+
 Obj::Obj(Obj &&other) noexcept : value(std::move(other.value)) {}
 
 Obj &Obj::operator=(Obj &&other) noexcept {
@@ -42,9 +59,11 @@ bool Obj::operator==(const Obj &other) const {
 	               [&result](const std::string &a, const std::string &b) {
 		               result = a == b;
 	               },
-	               // TODO: how to compare functions?
 	               [&result](const ObjFunction &a, const ObjFunction &b) {
-		               result = true;
+		               result = a == b;
+	               },
+	               [&result](const ObjNative &a, const ObjNative &b) {
+		               result = a == b;
 	               },
 	               // dont bother comparing different types
 	               [](const auto &, const auto &) {},
@@ -58,19 +77,23 @@ std::string Obj::toString() const {
 	std::visit(
 	    overloads{
 	        [&result](const std::string &value) { result = value; },
-	        [&result](const ObjFunction &value) { result = value.toString(); }},
+	        [&result](const ObjNative &value) { result = value.toString(); },
+	        [&result](const ObjFunction &value) { result = value.toString(); },
+	    },
 	    value);
 	return result;
 }
 
 Obj Obj::clone() const {
 	Obj result;
-	std::visit(
-	    overloads{[&result](const std::string &value) { result = Obj{value}; },
-	              [&result](const ObjFunction &value) {
-		              result = Obj{value.clone()};
-	              }},
-	    value);
+	std::visit(overloads{
+	               [&result](const std::string &value) { result = Obj{value}; },
+	               [&result](const ObjNative &value) { result = Obj{value}; },
+	               [&result](const ObjFunction &value) {
+		               result = Obj{value.clone()};
+	               },
+	           },
+	           value);
 	return result;
 }
 

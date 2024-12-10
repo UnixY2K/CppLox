@@ -1,10 +1,10 @@
-#include "cpplox/terminal.hpp"
 #include <cpplox/private/constants.hpp>
 
 #include <cpplox/chunk.hpp>
 #include <cpplox/compiler.hpp>
 #include <cpplox/debug.hpp>
 #include <cpplox/obj.hpp>
+#include <cpplox/terminal.hpp>
 #include <cpplox/value.hpp>
 #include <cpplox/vm.hpp>
 
@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <format>
 #include <iostream>
+#include <span>
 #include <string_view>
 #include <variant>
 
@@ -199,6 +200,25 @@ bool VM::callValue(const Value &callee, size_t argCount) {
 	if (auto *obj = std::get_if<Obj>(&callee.value); obj) {
 		if (auto *function = std::get_if<ObjFunction>(&obj->value); function) {
 			return call(*function, argCount);
+		}
+		if (auto *native = std::get_if<ObjNative>(&obj->value); native) {
+#if defined(_MSC_VER)
+			// sadly MSVC currently does not support std::span iterator
+			// constructors so we will copy the arguments to a temporary vector
+			// and then make a span from it
+			std::vector<std::reference_wrapper<Value>> vec;
+			vec.reserve(argCount);
+			for (size_t i = 0; i < argCount; i++) {
+				vec.emplace_back(*stack[stack.size() - argCount + i]);
+			}
+			auto args = std::span<std::reference_wrapper<Value>>(vec);
+#else
+			auto args = std::span<Value>(stack.end() - argCount, stack.end());
+#endif
+			auto result = native->function(argCount, args);
+			stack.erase(stack.end() - argCount, stack.end());
+			stack.emplace_back(std::make_unique<Value>(result));
+			return true;
 		}
 	}
 	runtimeError("Can only call functions and classes.");

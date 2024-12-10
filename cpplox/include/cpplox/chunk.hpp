@@ -56,6 +56,8 @@ class Chunk {
 	std::size_t getLine(std::size_t offset) const;
 	std::span<const Value> constants() const;
 
+	bool operator==(const Chunk &other) const;
+
   private:
 	std::vector<std::byte> m_code;
 	// RLE encoding of line numbers
