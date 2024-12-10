@@ -29,7 +29,6 @@ using NativeFn = Value (*)(size_t argCount,
 
 struct ObjNative {
 	NativeFn function = nullptr;
-	std::string name;
 	bool operator==(const ObjNative &other) const;
 	std::string toString() const;
 };

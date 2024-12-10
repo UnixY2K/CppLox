@@ -16,6 +16,8 @@ Value::Value(double value) : value(value) {}
 
 Value::Value(const std::string_view value) : value(std::string(value)) {}
 
+Value::Value(const NativeFn &function) : value(Obj{ObjNative{function}}) {}
+
 Value::Value(ObjFunction &&value) : value(Obj{std::move(value)}) {}
 
 Value::Value(const Value &other) : value(other.clone().value) {}

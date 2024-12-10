@@ -35,6 +35,7 @@ struct CallFrame {
 };
 
 class VM {
+	void defineNative(std::string_view name, NativeFn function);
 	void runtimeError(std::string_view message);
 
 	// gets the byte and increments the instruction pointer

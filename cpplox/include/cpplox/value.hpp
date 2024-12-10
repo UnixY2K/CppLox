@@ -20,6 +20,7 @@ class Value {
 	Value(bool value);
 	Value(double value);
 	Value(const std::string_view value);
+	Value(const NativeFn& function);
 	// functions are owned by the object, so we need to move them
 	Value(ObjFunction &&value);
 	Value(const Value &other);

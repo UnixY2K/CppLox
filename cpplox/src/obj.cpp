@@ -6,11 +6,11 @@
 namespace lox {
 
 bool ObjNative::operator==(const ObjNative &other) const {
-	return function == other.function && name == other.name;
+	return function == other.function;
 }
 
 std::string ObjNative::toString() const {
-	return std::format("<native fn {}>", name);
+	return std::format("<native fn>");
 }
 
 ObjFunction::ObjFunction() : chunk(std::make_unique<Chunk>()) {}

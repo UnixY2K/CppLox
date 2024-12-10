@@ -21,7 +21,21 @@ namespace lox {
 
 VM::VM()
     : debug_trace_instruction(constants::debug_trace_instruction),
-      debug_trace_stack(constants::debug_trace_stack) {}
+      debug_trace_stack(constants::debug_trace_stack) {
+
+	defineNative(
+	    "clock", [](size_t, std::span<std::reference_wrapper<Value>>) -> Value {
+		    using namespace std::chrono;
+		    auto now = system_clock::now().time_since_epoch();
+		    auto ms = duration_cast<milliseconds>(now).count();
+		    return Value(static_cast<double>(ms) / 1000.0);
+	    });
+}
+
+void VM::defineNative(std::string_view name, NativeFn function) {
+	// could also use heterogeneous lookup, but just for this is not worth it
+	globals[std::string(name)] = function;
+}
 
 void VM::runtimeError(std::string_view message) {
 	std::cerr << std::format("{}\n", message);
@@ -205,8 +219,7 @@ bool VM::callValue(const Value &callee, size_t argCount) {
 	if (auto *obj = std::get_if<Obj>(&callee.value); obj) {
 		if (auto *function = std::get_if<ObjFunction>(&obj->value); function) {
 			return call(*function, argCount);
-		}
-		if (auto *native = std::get_if<ObjNative>(&obj->value); native) {
+		} else if (auto *native = std::get_if<ObjNative>(&obj->value); native) {
 
 			auto args_view =
 			    stack | std::views::drop(stack.size() - argCount) |
@@ -220,7 +233,8 @@ bool VM::callValue(const Value &callee, size_t argCount) {
 			auto args = std::span<std::reference_wrapper<Value>>(args_vec);
 
 			auto result = native->function(argCount, args);
-			stack.erase(stack.end() - argCount, stack.end());
+			// remove the current args and the function in the stack
+			stack.erase(stack.end() - (argCount + 1), stack.end());
 			stack.emplace_back(std::make_unique<Value>(result));
 			return true;
 		}
@@ -458,13 +472,19 @@ InterpretResult VM::run() {
 				return InterpretResult::RUNTIME_ERROR;
 			}
 			size_t calleeIndex = stack.size() - argCount - 1;
-			Value &callee = *stack[calleeIndex];
+			auto &callee = *stack[calleeIndex];
+			bool isNative = std::holds_alternative<Obj>(callee.value) &&
+			                std::holds_alternative<ObjNative>(
+			                    std::get<Obj>(callee.value).value);
 			if (!callValue(callee, argCount)) {
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			auto result = run();
-			if (result != InterpretResult::OK) {
-				return result;
+			// only run if is not a native function
+			if (!isNative) {
+				auto result = run();
+				if (result != InterpretResult::OK) {
+					return result;
+				}
 			}
 			break;
 		}
