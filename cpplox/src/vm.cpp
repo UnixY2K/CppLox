@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <format>
 #include <iostream>
+#include <ranges>
 #include <span>
 #include <string_view>
 #include <variant>
@@ -196,25 +197,28 @@ bool VM::call(const ObjFunction &function, size_t argCount) {
 	return true;
 }
 bool VM::callValue(const Value &callee, size_t argCount) {
+	if (stack.size() <= argCount && argCount > 0) {
+		runtimeError("not enough values to call function");
+		return false;
+	}
 
 	if (auto *obj = std::get_if<Obj>(&callee.value); obj) {
 		if (auto *function = std::get_if<ObjFunction>(&obj->value); function) {
 			return call(*function, argCount);
 		}
 		if (auto *native = std::get_if<ObjNative>(&obj->value); native) {
-#if defined(_MSC_VER)
-			// sadly MSVC currently does not support std::span iterator
-			// constructors so we will copy the arguments to a temporary vector
-			// and then make a span from it
-			std::vector<std::reference_wrapper<Value>> vec;
-			vec.reserve(argCount);
-			for (size_t i = 0; i < argCount; i++) {
-				vec.emplace_back(*stack[stack.size() - argCount + i]);
-			}
-			auto args = std::span<std::reference_wrapper<Value>>(vec);
-#else
-			auto args = std::span<Value>(stack.end() - argCount, stack.end());
-#endif
+
+			auto args_view =
+			    stack | std::views::drop(stack.size() - argCount) |
+			    std::views::take(argCount) |
+			    std::views::transform(
+			        [](const auto &ptr) -> std::reference_wrapper<Value> {
+				        return std::ref(*ptr);
+			        });
+			std::vector<std::reference_wrapper<Value>> args_vec(
+			    args_view.begin(), args_view.end());
+			auto args = std::span<std::reference_wrapper<Value>>(args_vec);
+
 			auto result = native->function(argCount, args);
 			stack.erase(stack.end() - argCount, stack.end());
 			stack.emplace_back(std::make_unique<Value>(result));
