@@ -8,6 +8,7 @@
 #include <cpplox/value.hpp>
 #include <cpplox/vm.hpp>
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -23,13 +24,13 @@ VM::VM()
     : debug_trace_instruction(constants::debug_trace_instruction),
       debug_trace_stack(constants::debug_trace_stack) {
 
-	defineNative(
-	    "clock", [](size_t, std::span<std::reference_wrapper<Value>>) -> Value {
-		    using namespace std::chrono;
-		    auto now = system_clock::now().time_since_epoch();
-		    auto ms = duration_cast<milliseconds>(now).count();
-		    return Value(static_cast<double>(ms) / 1000.0);
-	    });
+	defineNative("clock",
+	             [](size_t, std::span<std::reference_wrapper<Value>>) -> Value {
+		             using namespace std::chrono;
+		             auto now = system_clock::now().time_since_epoch();
+		             auto ms = duration_cast<milliseconds>(now).count();
+		             return Value(static_cast<double>(ms) / 1000.0);
+	             });
 }
 
 void VM::defineNative(std::string_view name, NativeFn function) {
