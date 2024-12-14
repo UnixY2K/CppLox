@@ -1,5 +1,6 @@
 #include <cpplox/chunk.hpp>
 #include <cpplox/obj.hpp>
+#include <cpplox/value.hpp>
 
 #include <format>
 
@@ -9,9 +10,7 @@ bool ObjNative::operator==(const ObjNative &other) const {
 	return function == other.function;
 }
 
-std::string ObjNative::toString() const {
-	return std::format("<native fn>");
-}
+std::string ObjNative::toString() const { return std::format("<native fn>"); }
 
 ObjFunction::ObjFunction() : chunk(std::make_unique<Chunk>()) {}
 
@@ -40,11 +39,25 @@ std::string ObjFunction::toString() const {
 	return std::format("<fn {}>", name);
 }
 
+ObjClosure::ObjClosure(const ObjFunction &function) : function{function} {};
+
+bool ObjClosure::operator==(const ObjClosure &other) const {
+	return function.get() == other.function.get();
+}
+
+ObjClosure ObjClosure::clone() const { return ObjClosure{function}; }
+
+std::string ObjClosure::toString() const {
+	return std::format("<closure {}>", function.get().name);
+}
+
 Obj::Obj(std::string value) : value(value) {}
 
 Obj::Obj(const ObjFunction &value) : value{value.clone()} {}
 
 Obj::Obj(const ObjNative &value) : value(value) {}
+
+Obj::Obj(const ObjClosure &value) : value(value) {}
 
 Obj::Obj(Obj &&other) noexcept : value(std::move(other.value)) {}
 
@@ -79,21 +92,23 @@ std::string Obj::toString() const {
 	        [&result](const std::string &value) { result = value; },
 	        [&result](const ObjNative &value) { result = value.toString(); },
 	        [&result](const ObjFunction &value) { result = value.toString(); },
-	    },
+	        [&result](const ObjClosure &value) { result = value.toString(); }},
 	    value);
 	return result;
 }
 
 Obj Obj::clone() const {
 	Obj result;
-	std::visit(overloads{
-	               [&result](const std::string &value) { result = Obj{value}; },
-	               [&result](const ObjNative &value) { result = Obj{value}; },
-	               [&result](const ObjFunction &value) {
-		               result = Obj{value.clone()};
-	               },
-	           },
-	           value);
+	std::visit(
+	    overloads{[&result](const std::string &value) { result = Obj{value}; },
+	              [&result](const ObjNative &value) { result = Obj{value}; },
+	              [&result](const ObjFunction &value) {
+		              result = Obj{value.clone()};
+	              },
+	              [&result](const ObjClosure &value) {
+		              result = Obj{value.clone()};
+	              }},
+	    value);
 	return result;
 }
 
