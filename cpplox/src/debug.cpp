@@ -31,7 +31,8 @@ size_t getAddress(std::span<const std::byte>::iterator &ip) {
 	    instruction == OpCode::OP_SET_GLOBAL_LONG ||
 	    instruction == OpCode::OP_JUMP ||
 	    instruction == OpCode::OP_JUMP_IF_FALSE ||
-	    instruction == OpCode::OP_LOOP) {
+	    instruction == OpCode::OP_LOOP ||
+	    instruction == OpCode::OP_CLOSURE_LONG) {
 		address = address << 8 | static_cast<uint8_t>(nextByte(ip));
 	}
 	return address;
@@ -161,6 +162,18 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 		return JumpInstruction("OP_LOOP", chunk, ip, -1);
 	case OpCode::OP_CALL:
 		return ByteInstruction("OP_CALL", chunk, ip);
+	case OpCode::OP_CLOSURE:
+	case OpCode::OP_CLOSURE_LONG: {
+		auto address = getAddress(ip);
+		auto &value = chunk.constants()[address];
+		std::cout << std::format(
+		    "{:<26} {} {}\n",
+		    cli::terminal::cyan_colored(address > UINT8_MAX //
+		                                    ? "OP_CLOSURE_LONG"
+		                                    : "OP_CLOSURE"),
+		    cli::terminal::gray_colored(std::format("{:<4d}", address)),
+		    cli::terminal::yellow_colored(value.toString()));
+	}
 	case OpCode::OP_RETURN:
 		return SimpleInstruction("OP_RETURN", ip);
 	}

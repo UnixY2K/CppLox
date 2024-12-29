@@ -501,7 +501,7 @@ void Compiler::parsePrecedence(Precedence precedence) {
 size_t Compiler::identifierConstant(Token name) {
 	std::vector<std::byte> value = makeConstant(Value{name.lexeme});
 	// we reconstruct the bytes to an size_t
-	// ignore the first bythe which is the opcode
+	// ignore the first byte which is the opcode
 	value.erase(value.begin());
 	// then check that we did not exeed the size_t limit
 	if (value.size() > sizeof(size_t)) {
@@ -672,6 +672,13 @@ void Compiler::functionDefinition(FunctionType type) {
 
 	auto &function = compiler.endCompiler();
 	std::vector<std::byte> bytes = makeConstant(Value{function.clone()});
+	// check the first value to see if we need to use OP_CLOSURE or
+	// OP_CLOSURE_LONG
+	if (static_cast<OpCode>(bytes[0]) == OpCode::OP_CONSTANT) {
+		bytes[0] = static_cast<std::byte>(OpCode::OP_CLOSURE);
+	} else {
+		bytes[0] = static_cast<std::byte>(OpCode::OP_CLOSURE);
+	}
 	emmitBytes(bytes);
 }
 

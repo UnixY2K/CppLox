@@ -14,22 +14,21 @@ enum class InterpretResult { OK, COMPILE_ERROR, RUNTIME_ERROR };
 
 struct CallFrame {
 
-	CallFrame(const ObjFunction &function, size_t stackOffset)
-	    : function(function), ip(function.chunk->code().begin()),
+	CallFrame(const ObjClosure &closure, size_t stackOffset)
+	    : closure(closure), ip(closure.function.get().chunk->code().begin()),
 	      stackOffset(stackOffset) {}
 
 	// move constructor
 	CallFrame(CallFrame &&other) noexcept
-	    : function(other.function), ip(other.ip),
-	      stackOffset(other.stackOffset) {
-		other.ip = other.function.chunk->code().begin();
+	    : closure(other.closure), ip(other.ip), stackOffset(other.stackOffset) {
+		other.ip = other.closure.function.get().chunk->code().begin();
 		other.stackOffset = 0;
 	}
 
 	// callframes are not copyable
 	CallFrame(const CallFrame &) = delete;
 
-	const ObjFunction &function;
+	const ObjClosure closure;
 	std::span<const std::byte>::iterator ip;
 	size_t stackOffset = 0;
 };
@@ -47,7 +46,7 @@ class VM {
 
 	void binaryOp(std::span<const std::byte>::iterator &ip);
 
-	bool call(const ObjFunction &function, size_t argCount);
+	bool call(const ObjClosure &function, size_t argCount);
 	bool callValue(const Value &callee, size_t argCount);
 
 	size_t readIndex(std::span<const std::byte>::iterator &ip);
