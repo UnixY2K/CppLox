@@ -677,7 +677,7 @@ void Compiler::functionDefinition(FunctionType type) {
 	if (static_cast<OpCode>(bytes[0]) == OpCode::OP_CONSTANT) {
 		bytes[0] = static_cast<std::byte>(OpCode::OP_CLOSURE);
 	} else {
-		bytes[0] = static_cast<std::byte>(OpCode::OP_CLOSURE);
+		bytes[0] = static_cast<std::byte>(OpCode::OP_CLOSURE_LONG);
 	}
 	emmitBytes(bytes);
 }
