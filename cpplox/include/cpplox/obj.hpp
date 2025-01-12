@@ -37,6 +37,7 @@ struct ObjNative {
 struct ObjFunction {
 	std::string name;
 	size_t arity = 0;
+	size_t upvalueCount = 0;
 	std::unique_ptr<Chunk> chunk;
 	Object obj;
 

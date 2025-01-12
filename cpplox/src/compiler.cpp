@@ -424,6 +424,11 @@ void Compiler::namedVariable(Token name, bool canAssign) {
 		    arg > UINT8_MAX ? OpCode::OP_GET_LOCAL_LONG : OpCode::OP_GET_LOCAL;
 		setOp =
 		    arg > UINT8_MAX ? OpCode::OP_SET_LOCAL_LONG : OpCode::OP_SET_LOCAL;
+	} else if ((arg = resolveUpvalue(name)) != -1) {
+		getOp = arg > UINT8_MAX ? OpCode::OP_GET_UPVALUE_LONG
+		                        : OpCode::OP_GET_UPVALUE;
+		setOp = arg > UINT8_MAX ? OpCode::OP_SET_UPVALUE_LONG
+		                        : OpCode::OP_SET_UPVALUE;
 	} else {
 		arg = identifierConstant(name);
 		getOp = arg > UINT8_MAX ? OpCode::OP_GET_GLOBAL_LONG
@@ -531,6 +536,42 @@ int Compiler::resolveLocal(const Token &token) {
 		}
 		i++;
 	}
+	return -1;
+}
+
+int Compiler::addUpvalue(size_t index, bool isLocal) {
+	size_t count = function.upvalueCount;
+
+	for (size_t i = 0; i < count; i++) {
+		Upvalue &upvalue = upvalues[i];
+		if (upvalue.index == index && upvalue.isLocal == isLocal) {
+			return i;
+		}
+	}
+
+	if (count == UINT16_MAX) {
+		error("Too many closure variables in function");
+		return 0;
+	}
+
+	upvalues.emplace_back(Upvalue{.index = index, .isLocal = isLocal});
+	return function.upvalueCount++;
+}
+
+int Compiler::resolveUpvalue(const Token &name) {
+	if (enclosing == nullptr) {
+		return -1;
+	}
+	int local = enclosing->resolveLocal(name);
+	if (local != -1) {
+		return addUpvalue(local, true);
+	}
+
+	int upvalue = enclosing->resolveUpvalue(name);
+	if (upvalue != -1) {
+		return addUpvalue(upvalue, false);
+	}
+
 	return -1;
 }
 
@@ -680,6 +721,16 @@ void Compiler::functionDefinition(FunctionType type) {
 		bytes[0] = static_cast<std::byte>(OpCode::OP_CLOSURE_LONG);
 	}
 	emmitBytes(bytes);
+
+	for (size_t i = 0; i < function.upvalueCount; i++) {
+		emmitByte(static_cast<std::byte>(compiler.upvalues[i].isLocal));
+
+		if (compiler.upvalues[i].index > UINT8_MAX) {
+			emmitByte(static_cast<std::byte>(compiler.upvalues[i].index >> 8));
+		}
+
+		emmitByte(static_cast<std::byte>(compiler.upvalues[i].index));
+	}
 }
 
 void Compiler::funDeclaration() {

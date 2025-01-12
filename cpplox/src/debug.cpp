@@ -87,13 +87,13 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 	std::cout << std::format(
 	    "{}{}", cli::terminal::orange_colored("#"),
 	    cli::terminal::green_colored(std::format("{:04X} ", offset)));
-	auto instruction = static_cast<lox::OpCode>(peekByte(ip));
 	// print line
 	if (offset > 0 && chunk.getLine(offset) == chunk.getLine(offset - 1)) {
 		std::cout << cli::terminal::gray_colored("   | ");
 	} else {
 		std::cout << std::format("{:4d} ", chunk.getLine(offset));
 	}
+	auto instruction = static_cast<lox::OpCode>(peekByte(ip));
 
 	switch (instruction) {
 	case OpCode::OP_CONSTANT:
@@ -130,6 +130,14 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 		return ConstantInstruction("OP_SET_GLOBAL_LONG", chunk, ip);
 	case OpCode::OP_EQUAL:
 		return SimpleInstruction("OP_EQUAL", ip);
+	case OpCode::OP_GET_UPVALUE:
+		return ByteInstruction("OP_GET_UPVALUE", chunk, ip);
+	case OpCode::OP_GET_UPVALUE_LONG:
+		return ByteInstruction("OP_GET_UPVALUE_LONG", chunk, ip);
+	case OpCode::OP_SET_UPVALUE:
+		return ByteInstruction("OP_SET_UPVALUE", chunk, ip);
+	case OpCode::OP_SET_UPVALUE_LONG:
+		return ByteInstruction("OP_SET_UPVALUE_LONG", chunk, ip);
 	case OpCode::OP_NOT_EQUAL:
 		return SimpleInstruction("OP_NOT_EQUAL", ip);
 	case OpCode::OP_GREATER:
@@ -173,6 +181,29 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 		                                    : "OP_CLOSURE"),
 		    cli::terminal::gray_colored(std::format("{:<4d}", address)),
 		    cli::terminal::yellow_colored(value.toString()));
+
+		auto &function =
+		    std::get<lox::ObjFunction>(std::get<lox::Obj>(value.value).value);
+
+		for (size_t i = 0; i < function.upvalueCount; i++) {
+			bool isLocal = static_cast<bool>(readByte(ip));
+			size_t index = getAddress(ip);
+			if (instruction == OpCode::OP_CLOSURE_LONG) {
+				index = index << 8 | static_cast<uint8_t>(readByte(ip));
+			}
+			// print offset
+			std::cout << std::format(
+			    "{}{}", cli::terminal::orange_colored("#"),
+			    cli::terminal::green_colored(std::format("{:04X} ", offset)));
+			// print line
+			std::cout << cli::terminal::gray_colored("   | ");
+			std::cout << std::format(
+			    "{:<26} {} {} {}\n", cli::terminal::cyan_colored("upvalue"),
+			    cli::terminal::gray_colored(std::format("{:<4d}", i)),
+			    cli::terminal::gray_colored(std::format("{:<4d}", index)),
+			    cli::terminal::gray_colored(isLocal ? "local" : "upvalue"));
+		}
+		return;
 	}
 	case OpCode::OP_RETURN:
 		return SimpleInstruction("OP_RETURN", ip);

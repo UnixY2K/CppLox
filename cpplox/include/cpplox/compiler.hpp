@@ -60,6 +60,11 @@ class Compiler {
 		bool initialized = false;
 	};
 
+	struct Upvalue {
+		size_t index;
+		bool isLocal;
+	};
+
 	struct CompilerScope {
 		int depth = 0;
 		std::vector<Local> locals;
@@ -97,6 +102,8 @@ class Compiler {
 	size_t identifierConstant(Token name);
 	bool identifiersEqual(const Token &a, const Token &b);
 	int resolveLocal(const Token &name);
+	int addUpvalue(size_t index, bool isLocal);
+	int resolveUpvalue(const Token &name);
 	void addLocal(Token name);
 	void declareVariable();
 	size_t parseVariable(std::string_view errorMessage);
@@ -122,7 +129,8 @@ class Compiler {
 	void statement();
 
   public:
-	Compiler(Compiler *enclosing = nullptr, FunctionType type = FunctionType::TYPE_SCRIPT);
+	Compiler(Compiler *enclosing = nullptr,
+	         FunctionType type = FunctionType::TYPE_SCRIPT);
 	auto compile(std::string_view source,
 	             FunctionType type = FunctionType::TYPE_SCRIPT)
 	    -> std::expected<std::reference_wrapper<ObjFunction>, std::string>;
@@ -133,6 +141,7 @@ class Compiler {
 	Compiler *enclosing = nullptr;
 	Parser parser;
 	Scanner scanner;
+	std::vector<Upvalue> upvalues;
 	CompilerScope scope;
 	ObjFunction function;
 	FunctionType type = FunctionType::TYPE_FUNCTION;
