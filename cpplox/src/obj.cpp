@@ -15,7 +15,8 @@ std::string ObjNative::toString() const { return std::format("<native fn>"); }
 ObjFunction::ObjFunction() : chunk(std::make_unique<Chunk>()) {}
 
 bool ObjFunction::operator==(const ObjFunction &other) const {
-	if (name != other.name || arity != other.arity) {
+	if (name != other.name || arity != other.arity ||
+	    upvalueCount != other.upvalueCount) {
 		return false;
 	}
 	return *chunk == *other.chunk;
@@ -27,6 +28,7 @@ ObjFunction ObjFunction::clone() const {
 	result.chunk = std::make_unique<Chunk>(*chunk);
 	result.arity = arity;
 	result.name = name;
+	result.upvalueCount = upvalueCount;
 	return result;
 }
 
