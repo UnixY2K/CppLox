@@ -198,7 +198,8 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 			// print line
 			std::cout << cli::terminal::gray_colored("   | ");
 			std::cout << std::format(
-			    "{:<26} {} {} {}\n", cli::terminal::cyan_colored("upvalue"),
+			    "{} {} {} {}\n",
+			    cli::terminal::lime_colored(std::format("{:<17}", "upvalue")),
 			    cli::terminal::gray_colored(std::format("{:<4d}", i)),
 			    cli::terminal::gray_colored(std::format("{:<4d}", index)),
 			    cli::terminal::gray_colored(isLocal ? "local" : "upvalue"));
