@@ -6,10 +6,11 @@
 namespace lox {
 
 class Object {
+  public:
 	virtual std::unique_ptr<Object> clone() const = 0;
 	virtual std::string toString() const = 0;
-	virtual bool isTruthy() const = 0;
 	virtual bool equals(const Object &other) const = 0;
+	virtual ~Object() = default;
 };
 
 // template helper method to check if a pointer is of a certain type

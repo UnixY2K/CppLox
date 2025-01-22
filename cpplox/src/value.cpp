@@ -3,6 +3,7 @@
 #include <cpplox/value.hpp>
 
 #include <format>
+#include <memory>
 #include <string>
 #include <variant>
 
@@ -41,6 +42,9 @@ Value Value::clone() const {
 	        [&result](const std::string &value) { result = Value{value}; },
 	        [&result](bool value) { result = Value{value}; },
 	        [&result](double value) { result = Value{value}; },
+	        [&result](const std::unique_ptr<Object> &value) {
+		        result.value = value->clone();
+	        },
 	        [&result](const Obj &value) { result.value = value.clone(); },
 	        [&result](std::monostate) { result = Value{}; },
 	    },
@@ -55,6 +59,9 @@ std::string Value::toString() const {
 	        [&result](const std::string &value) { result = value; },
 	        [&result](bool value) { result = std::format("{}", value); },
 	        [&result](double value) { result = std::format("{}", value); },
+	        [&result](const std::unique_ptr<Object> &value) {
+		        result = std::format("{}", value->toString());
+	        },
 	        [&result](const Obj &value) {
 		        result = std::format("{}", value.toString());
 	        },
@@ -89,6 +96,10 @@ bool Value::equals(const Value &other) const {
 	               [&result](double a, double b) { result = a == b; },
 	               [&result](bool a, bool b) { result = a == b; },
 	               [&result](std::monostate, std::monostate) { result = true; },
+	               [&result](const std::unique_ptr<Object> &a,
+	                         const std::unique_ptr<Object> &b) {
+		               result = a->equals(*b);
+	               },
 	               [&result](const Obj &a, const Obj &b) { result = a == b; },
 	               // dont bother comparing different types
 	               [](const auto &, const auto &) {},

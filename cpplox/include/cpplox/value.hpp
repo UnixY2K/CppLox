@@ -2,6 +2,7 @@
 #include <cpplox/obj.hpp>
 #include <cpplox/object.hpp>
 
+#include <memory>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -15,7 +16,7 @@ class ObjNative;
 
 class Value {
 	using Value_t =
-	    std::variant<bool, double, std::string, Obj, std::monostate>;
+	    std::variant<bool, double, std::string, Obj, std::unique_ptr<Object>, std::monostate>;
 
   public:
 	Value();
