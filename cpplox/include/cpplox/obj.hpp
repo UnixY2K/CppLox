@@ -23,11 +23,10 @@ class ObjNative;
 class ObjClosure;
 
 class Obj {
-	using Obj_t = std::variant<ObjFunction, ObjNative>;
+	using Obj_t = std::variant<ObjNative>;
 
   public:
 	Obj() = default;
-	Obj(const ObjFunction &value);
 	Obj(const ObjNative &value);
 	Obj(const Obj &other) = delete;
 	Obj(Obj &&other) noexcept;

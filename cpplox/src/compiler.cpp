@@ -712,7 +712,7 @@ void Compiler::functionDefinition(FunctionType type) {
 	compiler.block();
 
 	auto &function = compiler.endCompiler();
-	std::vector<std::byte> bytes = makeConstant(Value{function.clone()});
+	std::vector<std::byte> bytes = makeConstant(Value{function});
 	// check the first value to see if we need to use OP_CLOSURE or
 	// OP_CLOSURE_LONG
 	if (static_cast<OpCode>(bytes[0]) == OpCode::OP_CONSTANT) {

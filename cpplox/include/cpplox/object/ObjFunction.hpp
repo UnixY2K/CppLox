@@ -10,7 +10,7 @@ namespace lox {
 
 class Chunk;
 
-class ObjFunction {
+class ObjFunction : public Object {
   public:
 	std::string name;
 	size_t arity = 0;
@@ -19,7 +19,12 @@ class ObjFunction {
 
 	ObjFunction();
 	bool operator==(const ObjFunction &other) const;
-	ObjFunction clone() const;
-	std::string toString() const;
+	ObjFunction copy() const;
+
+	std::unique_ptr<Object> clone() const override;
+	std::string toString() const override;
+	bool equals(const Object &other) const override;
+
+	~ObjFunction() = default;
 };
 } // namespace lox

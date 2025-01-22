@@ -17,9 +17,13 @@ Value::Value(double value) : value(value) {}
 
 Value::Value(const std::string_view value) : value(std::string(value)) {}
 
+Value::Value(std::unique_ptr<Object> value) : value(std::move(value)) {}
+
+Value::Value(const Object &value) : value(value.clone()) {}
+
 Value::Value(const NativeFn &function) : value(Obj{ObjNative{function}}) {}
 
-Value::Value(const ObjFunction &value) : value(Obj{value}) {}
+Value::Value(const ObjFunction &value) : value(value.clone()) {}
 
 Value::Value(const Value &other) : value(other.clone().value) {}
 

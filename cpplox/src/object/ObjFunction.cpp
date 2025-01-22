@@ -16,7 +16,7 @@ bool ObjFunction::operator==(const ObjFunction &other) const {
 	return *chunk == *other.chunk;
 }
 
-ObjFunction ObjFunction::clone() const {
+ObjFunction ObjFunction::copy() const {
 	ObjFunction result;
 	// copy the chunk data
 	result.chunk = std::make_unique<Chunk>(*chunk);
@@ -33,6 +33,17 @@ std::string ObjFunction::toString() const {
 		return "<script>";
 	}
 	return std::format("<fn {}>", name);
+}
+
+std::unique_ptr<Object> ObjFunction::clone() const {
+	return std::make_unique<ObjFunction>(copy());
+}
+
+bool ObjFunction::equals(const Object &other) const {
+	if (auto *otherFunction = dynamic_cast<const ObjFunction *>(&other)) {
+		return *this == *otherFunction;
+	}
+	return false;
 }
 
 } // namespace lox

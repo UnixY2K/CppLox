@@ -218,10 +218,13 @@ bool VM::callValue(const Value &callee, size_t argCount) {
 		return false;
 	}
 
-	if (auto *obj = std::get_if<Obj>(&callee.value); obj) {
-		if (auto *function = std::get_if<ObjFunction>(&obj->value); function) {
+	if (auto obj = std::get_if<std::unique_ptr<Object>>(&callee.value); obj) {
+		if (auto *function = dynamic_cast<ObjFunction *>(obj->get());
+		    function) {
 			return call(*function, argCount);
-		} else if (auto *native = std::get_if<ObjNative>(&obj->value); native) {
+		}
+	} else if (auto obj = std::get_if<Obj>(&callee.value); obj) {
+		if (auto *native = std::get_if<ObjNative>(&obj->value); native) {
 
 			auto args_view =
 			    stack | std::views::drop(stack.size() - argCount) |
@@ -498,16 +501,24 @@ InterpretResult VM::run() {
 				return InterpretResult::RUNTIME_ERROR;
 			}
 
-			if (!std::holds_alternative<Obj>(constant->get().value) ||
-			    !std::holds_alternative<ObjFunction>(
-			        std::get<Obj>(constant->get().value).value)) {
-				runtimeError("Expected function for closure.");
+			if (auto *object = std::get_if<std::unique_ptr<Object>>(
+			        &constant->get().value);
+			    object) {
+
+				if (auto *function = dynamic_cast<ObjFunction *>(object->get());
+				    function) {
+					auto closure = ObjClosure{*function};
+					auto value = Value{closure};
+					stack.emplace_back(std::make_unique<Value>(value));
+				} else {
+					runtimeError(
+					    "Expected function for closure, got primitive.");
+					return InterpretResult::RUNTIME_ERROR;
+				}
+			} else {
+				runtimeError("Expected function for closure, got primitive.");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-
-			auto &func = std::get<ObjFunction>(
-			    std::get<Obj>(constant->get().value).value);
-			stack.push_back(std::make_unique<Value>(func.clone()));
 			break;
 		}
 		case OpCode::OP_RETURN: {

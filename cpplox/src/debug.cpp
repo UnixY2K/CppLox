@@ -1,5 +1,6 @@
 #include <cpplox/chunk.hpp>
 #include <cpplox/debug.hpp>
+#include <cpplox/object.hpp>
 #include <cpplox/terminal.hpp>
 #include <cpplox/value.hpp>
 
@@ -8,6 +9,7 @@
 #include <format>
 #include <iostream>
 #include <iterator>
+#include <memory>
 #include <span>
 #include <string_view>
 
@@ -181,9 +183,12 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 		                                    : "OP_CLOSURE"),
 		    cli::terminal::gray_colored(std::format("{:<4d}", address)),
 		    cli::terminal::yellow_colored(value.toString()));
-
-		auto &function =
-		    std::get<lox::ObjFunction>(std::get<lox::Obj>(value.value).value);
+		auto &v = *std::get<std::unique_ptr<lox::Object>>(value.value);
+		auto *fn = dynamic_cast<lox::ObjFunction *>(&v);
+		if (fn == nullptr) {
+			return;
+		}
+		auto &function = *fn;
 
 		for (size_t i = 0; i < function.upvalueCount; i++) {
 			bool isLocal = static_cast<bool>(readByte(ip));
