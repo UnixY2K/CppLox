@@ -1,5 +1,6 @@
 #pragma once
 #include <cpplox/obj.hpp>
+#include <cpplox/object.hpp>
 
 #include <string>
 #include <string_view>
@@ -22,7 +23,7 @@ class Value {
 	Value(const std::string_view value);
 	Value(const NativeFn& function);
 	// functions are owned by the object, so we need to move them
-	Value(ObjFunction &&value);
+	Value(const ObjFunction &value);
 	Value(const Value &other);
 	Value(Value &&other) noexcept;
 

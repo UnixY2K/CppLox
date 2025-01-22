@@ -1,7 +1,7 @@
 #pragma once
-#include <cpplox/chunk.hpp>
 #include <cpplox/object.hpp>
 
+#include <cpplox/chunk.hpp>
 
 #include <memory>
 #include <string>
@@ -15,7 +15,7 @@ class ObjFunction {
 	std::string name;
 	size_t arity = 0;
 	size_t upvalueCount = 0;
-	std::unique_ptr<Chunk> chunk;
+	std::shared_ptr<Chunk> chunk;
 
 	ObjFunction();
 	bool operator==(const ObjFunction &other) const;
