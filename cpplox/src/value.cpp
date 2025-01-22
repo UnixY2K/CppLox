@@ -2,6 +2,8 @@
 #include <cpplox/obj.hpp>
 #include <cpplox/value.hpp>
 
+#include <cpplox/object/ObjNative.hpp>
+
 #include <format>
 #include <memory>
 #include <string>
@@ -21,9 +23,10 @@ Value::Value(std::unique_ptr<Object> value) : value(std::move(value)) {}
 
 Value::Value(const Object &value) : value(value.clone()) {}
 
-Value::Value(const NativeFn &function) : value(Obj{ObjNative{function}}) {}
+Value::Value(const NativeFn &function) : value(ObjNative{function}.clone()) {
+}
 
-Value::Value(const ObjFunction &value) : value(value.clone()) {}
+Value::Value(const ObjFunction &value) : value{value.clone()} {}
 
 Value::Value(const Value &other) : value(other.clone().value) {}
 
@@ -49,7 +52,6 @@ Value Value::clone() const {
 	        [&result](const std::unique_ptr<Object> &value) {
 		        result.value = value->clone();
 	        },
-	        [&result](const Obj &value) { result.value = value.clone(); },
 	        [&result](std::monostate) { result = Value{}; },
 	    },
 	    value);
@@ -65,9 +67,6 @@ std::string Value::toString() const {
 	        [&result](double value) { result = std::format("{}", value); },
 	        [&result](const std::unique_ptr<Object> &value) {
 		        result = std::format("{}", value->toString());
-	        },
-	        [&result](const Obj &value) {
-		        result = std::format("{}", value.toString());
 	        },
 	        [&result](std::monostate) { result = std::format("nil"); },
 	    },
@@ -104,7 +103,6 @@ bool Value::equals(const Value &other) const {
 	                         const std::unique_ptr<Object> &b) {
 		               result = a->equals(*b);
 	               },
-	               [&result](const Obj &a, const Obj &b) { result = a == b; },
 	               // dont bother comparing different types
 	               [](const auto &, const auto &) {},
 	           },

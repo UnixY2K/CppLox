@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <format>
 #include <iostream>
+#include <memory>
 #include <ranges>
 #include <span>
 #include <string_view>
@@ -124,31 +125,19 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 		    va.value, vb.value);
 		break;
 	case OpCode::OP_ADD:
-		std::visit(
-		    overloads{
-		        [this](double a, double b) {
-			        stack.push_back(std::make_unique<Value>(a + b));
-		        },
-		        [&](const Obj &a, const Obj &b) {
-			        std::visit(
-			            overloads{
-			                [this](const std::string &a, const std::string &b) {
-				                stack.emplace_back(
-				                    std::make_unique<Value>(a + b));
-			                },
-			                [this](const auto &, const auto &) {
-				                runtimeError("Operands must be two numbers or "
-				                             "two strings.");
-			                },
-			            },
-			            a.value, b.value);
-		        },
-		        [this](const auto &, const auto &) {
-			        runtimeError("Operands must be two numbers or "
-			                     "two strings.");
-		        },
-		    },
-		    va.value, vb.value);
+		std::visit(overloads{
+		               [this](double a, double b) {
+			               stack.push_back(std::make_unique<Value>(a + b));
+		               },
+		               [this](const std::string &a, const std::string &b) {
+			               stack.emplace_back(std::make_unique<Value>(a + b));
+		               },
+		               [this](const auto &, const auto &) {
+			               runtimeError("Operands must be two numbers or "
+			                            "two strings.");
+		               },
+		           },
+		           va.value, vb.value);
 		break;
 	case OpCode::OP_SUBTRACT:
 		std::visit(
@@ -222,9 +211,8 @@ bool VM::callValue(const Value &callee, size_t argCount) {
 		if (auto *function = dynamic_cast<ObjFunction *>(obj->get());
 		    function) {
 			return call(*function, argCount);
-		}
-	} else if (auto obj = std::get_if<Obj>(&callee.value); obj) {
-		if (auto *native = std::get_if<ObjNative>(&obj->value); native) {
+		} else if (auto *native = dynamic_cast<ObjNative *>(obj->get());
+		           native) {
 
 			auto args_view =
 			    stack | std::views::drop(stack.size() - argCount) |
@@ -479,9 +467,14 @@ InterpretResult VM::run() {
 			}
 			size_t calleeIndex = stack.size() - argCount - 1;
 			auto &callee = *stack[calleeIndex];
-			bool isNative = std::holds_alternative<Obj>(callee.value) &&
-			                std::holds_alternative<ObjNative>(
-			                    std::get<Obj>(callee.value).value);
+			bool isNative = false;
+			if (auto obj = std::get_if<std::unique_ptr<Object>>(&callee.value);
+			    obj) {
+				if (auto *native = dynamic_cast<ObjNative *>(obj->get());
+				    native) {
+					isNative = true;
+				}
+			}
 			if (!callValue(callee, argCount)) {
 				return InterpretResult::RUNTIME_ERROR;
 			}

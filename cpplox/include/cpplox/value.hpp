@@ -9,13 +9,11 @@
 
 namespace lox {
 
-class Obj;
-class ObjFunction;
 class ObjFunction;
 class ObjNative;
 
 class Value {
-	using Value_t = std::variant<bool, double, std::string, Obj,
+	using Value_t = std::variant<bool, double, std::string,
 	                             std::unique_ptr<Object>, std::monostate>;
 
   public:
