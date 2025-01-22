@@ -8,8 +8,6 @@ Obj::Obj(const ObjFunction &value) : value{value.clone()} {}
 
 Obj::Obj(const ObjNative &value) : value(value) {}
 
-Obj::Obj(const ObjClosure &value) : value(value) {}
-
 Obj::Obj(Obj &&other) noexcept : value(std::move(other.value)) {}
 
 Obj &Obj::operator=(Obj &&other) noexcept {
@@ -39,7 +37,7 @@ std::string Obj::toString() const {
 	    overloads{
 	        [&result](const ObjNative &value) { result = value.toString(); },
 	        [&result](const ObjFunction &value) { result = value.toString(); },
-	        [&result](const ObjClosure &value) { result = value.toString(); }},
+	    },
 	    value);
 	return result;
 }
@@ -47,13 +45,10 @@ std::string Obj::toString() const {
 Obj Obj::clone() const {
 	Obj result;
 	std::visit(
-	    overloads{
-	        [&result](const ObjNative &value) { result = Obj{value}; },
-	        [&result](const ObjFunction &value) {
-		        result = Obj{value.clone()};
-	        },
-	        [&result](const ObjClosure &value) { result = Obj{value.clone()}; },
-	    },
+	    overloads{[&result](const ObjNative &value) { result = Obj{value}; },
+	              [&result](const ObjFunction &value) {
+		              result = Obj{value.clone()};
+	              }},
 	    value);
 	return result;
 }

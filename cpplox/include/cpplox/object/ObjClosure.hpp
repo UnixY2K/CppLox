@@ -4,7 +4,7 @@
 #include <cpplox/object/ObjFunction.hpp>
 
 namespace lox {
-class ObjClosure {
+class ObjClosure : public Object {
   public:
 	std::reference_wrapper<const ObjFunction> function;
 
@@ -15,7 +15,12 @@ class ObjClosure {
 	size_t arity() const { return function.get().arity; }
 	const std::shared_ptr<Chunk> &chunk() const { return function.get().chunk; }
 
-	ObjClosure clone() const;
-	std::string toString() const;
+	ObjClosure copy() const;
+
+	std::unique_ptr<Object> clone() const override;
+	std::string toString() const override;
+	bool equals(const Object &other) const override;
+
+	~ObjClosure() = default;
 };
 } // namespace lox
