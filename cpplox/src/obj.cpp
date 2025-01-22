@@ -2,56 +2,8 @@
 #include <cpplox/obj.hpp>
 #include <cpplox/value.hpp>
 
-#include <format>
 
 namespace lox {
-
-bool ObjNative::operator==(const ObjNative &other) const {
-	return function == other.function;
-}
-
-std::string ObjNative::toString() const { return std::format("<native fn>"); }
-
-ObjFunction::ObjFunction() : chunk(std::make_unique<Chunk>()) {}
-
-bool ObjFunction::operator==(const ObjFunction &other) const {
-	if (name != other.name || arity != other.arity ||
-	    upvalueCount != other.upvalueCount) {
-		return false;
-	}
-	return *chunk == *other.chunk;
-}
-
-ObjFunction ObjFunction::clone() const {
-	ObjFunction result;
-	// copy the chunk data
-	result.chunk = std::make_unique<Chunk>(*chunk);
-	result.arity = arity;
-	result.name = name;
-	result.upvalueCount = upvalueCount;
-	return result;
-}
-
-std::string ObjFunction::toString() const {
-	if (name.empty()) {
-		return "<lambda>";
-	} else if (name == "<script>") {
-		return "<script>";
-	}
-	return std::format("<fn {}>", name);
-}
-
-ObjClosure::ObjClosure(const ObjFunction &function) : function{function} {};
-
-bool ObjClosure::operator==(const ObjClosure &other) const {
-	return function.get() == other.function.get();
-}
-
-ObjClosure ObjClosure::clone() const { return ObjClosure{function}; }
-
-std::string ObjClosure::toString() const {
-	return std::format("<closure {}>", function.get().name);
-}
 
 Obj::Obj(std::string value) : value(value) {}
 
