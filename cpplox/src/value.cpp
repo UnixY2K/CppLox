@@ -38,7 +38,7 @@ Value Value::clone() const {
 	Value result;
 	std::visit(
 	    overloads{
-
+	        [&result](const std::string &value) { result = Value{value}; },
 	        [&result](bool value) { result = Value{value}; },
 	        [&result](double value) { result = Value{value}; },
 	        [&result](const Obj &value) { result.value = value.clone(); },
@@ -52,6 +52,7 @@ std::string Value::toString() const {
 	std::string result;
 	std::visit(
 	    overloads{
+	        [&result](const std::string &value) { result = value; },
 	        [&result](bool value) { result = std::format("{}", value); },
 	        [&result](double value) { result = std::format("{}", value); },
 	        [&result](const Obj &value) {
@@ -82,6 +83,9 @@ bool Value::isTruthy() const {
 bool Value::equals(const Value &other) const {
 	bool result = false;
 	std::visit(overloads{
+	               [&result](const std::string &a, const std::string &b) {
+		               result = a == b;
+	               },
 	               [&result](double a, double b) { result = a == b; },
 	               [&result](bool a, bool b) { result = a == b; },
 	               [&result](std::monostate, std::monostate) { result = true; },

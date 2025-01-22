@@ -14,14 +14,15 @@ class ObjFunction;
 class ObjNative;
 
 class Value {
-	using Value_t = std::variant<bool, double, Obj, std::monostate>;
+	using Value_t =
+	    std::variant<bool, double, std::string, Obj, std::monostate>;
 
   public:
 	Value();
 	Value(bool value);
 	Value(double value);
 	Value(const std::string_view value);
-	Value(const NativeFn& function);
+	Value(const NativeFn &function);
 	// functions are owned by the object, so we need to move them
 	Value(const ObjFunction &value);
 	Value(const Value &other);

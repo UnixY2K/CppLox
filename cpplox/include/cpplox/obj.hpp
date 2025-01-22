@@ -23,11 +23,10 @@ class ObjNative;
 class ObjClosure;
 
 class Obj {
-	using Obj_t = std::variant<std::string, ObjFunction, ObjNative, ObjClosure>;
+	using Obj_t = std::variant<ObjFunction, ObjNative, ObjClosure>;
 
   public:
 	Obj() = default;
-	Obj(std::string value);
 	Obj(const ObjFunction &value);
 	Obj(const ObjNative &value);
 	Obj(const ObjClosure &value);

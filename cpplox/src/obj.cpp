@@ -2,10 +2,7 @@
 #include <cpplox/obj.hpp>
 #include <cpplox/value.hpp>
 
-
 namespace lox {
-
-Obj::Obj(std::string value) : value(value) {}
 
 Obj::Obj(const ObjFunction &value) : value{value.clone()} {}
 
@@ -23,9 +20,6 @@ Obj &Obj::operator=(Obj &&other) noexcept {
 bool Obj::operator==(const Obj &other) const {
 	bool result = false;
 	std::visit(overloads{
-	               [&result](const std::string &a, const std::string &b) {
-		               result = a == b;
-	               },
 	               [&result](const ObjFunction &a, const ObjFunction &b) {
 		               result = a == b;
 	               },
@@ -43,7 +37,6 @@ std::string Obj::toString() const {
 	std::string result;
 	std::visit(
 	    overloads{
-	        [&result](const std::string &value) { result = value; },
 	        [&result](const ObjNative &value) { result = value.toString(); },
 	        [&result](const ObjFunction &value) { result = value.toString(); },
 	        [&result](const ObjClosure &value) { result = value.toString(); }},
@@ -54,14 +47,13 @@ std::string Obj::toString() const {
 Obj Obj::clone() const {
 	Obj result;
 	std::visit(
-	    overloads{[&result](const std::string &value) { result = Obj{value}; },
-	              [&result](const ObjNative &value) { result = Obj{value}; },
-	              [&result](const ObjFunction &value) {
-		              result = Obj{value.clone()};
-	              },
-	              [&result](const ObjClosure &value) {
-		              result = Obj{value.clone()};
-	              }},
+	    overloads{
+	        [&result](const ObjNative &value) { result = Obj{value}; },
+	        [&result](const ObjFunction &value) {
+		        result = Obj{value.clone()};
+	        },
+	        [&result](const ObjClosure &value) { result = Obj{value.clone()}; },
+	    },
 	    value);
 	return result;
 }
