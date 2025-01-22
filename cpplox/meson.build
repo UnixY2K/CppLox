@@ -1,6 +1,9 @@
 cpplox_incl = include_directories('include')
 
 cpplox_srcs = [
+    'src/object/ObjClosure.cpp',
+    'src/object/ObjFunction.cpp',
+    'src/object/ObjNative.cpp',
     'src/chunk.cpp',
     'src/compiler.cpp',
     'src/debug.cpp',

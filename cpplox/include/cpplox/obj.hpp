@@ -2,6 +2,8 @@
 
 #include <cpplox/value.hpp>
 
+#include <cpplox/object/ObjFunction.hpp>
+
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -16,38 +18,26 @@ template <class... Ts> struct overloads : Ts... {
 	using Ts::operator()...;
 };
 
-class Object {};
 class Chunk;
 class Object;
 class Obj;
-struct ObjFunction;
-struct ObjNative;
-struct ObjClosure;
+class ObjFunction;
+class ObjNative;
+class ObjClosure;
 class Value;
 
 using NativeFn = Value (*)(size_t argCount,
                            std::span<std::reference_wrapper<Value>> args);
 
-struct ObjNative {
+class ObjNative {
+  public:
 	NativeFn function = nullptr;
 	bool operator==(const ObjNative &other) const;
 	std::string toString() const;
 };
 
-struct ObjFunction {
-	std::string name;
-	size_t arity = 0;
-	size_t upvalueCount = 0;
-	std::unique_ptr<Chunk> chunk;
-	Object obj;
-
-	ObjFunction();
-	bool operator==(const ObjFunction &other) const;
-	ObjFunction clone() const;
-	std::string toString() const;
-};
-
-struct ObjClosure {
+class ObjClosure {
+  public:
 	std::reference_wrapper<const ObjFunction> function;
 
 	ObjClosure(const ObjFunction &function);

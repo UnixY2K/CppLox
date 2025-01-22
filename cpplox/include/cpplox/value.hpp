@@ -8,9 +8,9 @@
 namespace lox {
 
 class Obj;
-struct ObjFunction;
-struct ObjFunction;
-struct ObjNative;
+class ObjFunction;
+class ObjFunction;
+class ObjNative;
 
 class Value {
 	using Value_t = std::variant<bool, double, Obj, std::monostate>;
