@@ -218,12 +218,28 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 	    std::format("OP_UNKWN ({:#04X})", static_cast<uint8_t>(instruction)));
 }
 
-void ChunkDisassembly(const lox::Chunk &chunk, std::string_view name) {
+void ChunkDisassembly(const lox::Chunk &chunk, std::string_view name,
+                      bool recursive) {
 	std::cout << std::format("{:=^34}\n", std::format(" {} ", name));
 
 	auto code = chunk.code();
 	for (auto ip = code.begin(); ip != code.end(); ip++) {
 		InstructionDisassembly(chunk, ip);
+	}
+
+	if (recursive) {
+		for (const auto &constant : chunk.constants()) {
+			// check if is an object
+			if (auto obj =
+			        std::get_if<std::unique_ptr<Object>>(&constant.value);
+			    obj) {
+				if (auto *function = dynamic_cast<ObjFunction *>(obj->get());
+				    function) {
+					ChunkDisassembly(*function->chunk, function->name,
+					                 recursive);
+				}
+			}
+		}
 	}
 }
 

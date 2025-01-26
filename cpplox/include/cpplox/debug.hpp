@@ -23,6 +23,6 @@ void JumpInstruction(std::string_view name, const lox::Chunk &chunk,
 void InstructionDisassembly(const lox::Chunk &chunk,
                             std::span<const std::byte>::iterator &ip);
 
-void ChunkDisassembly(const lox::Chunk &chunk, std::string_view name);
+void ChunkDisassembly(const lox::Chunk &chunk, std::string_view name, bool recursive = false);
 
 } // namespace lox::debug

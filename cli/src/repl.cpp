@@ -142,7 +142,7 @@ int compileFile(std::string_view path) {
 			return 65;
 		} else {
 			auto &chunk = *script->get().chunk.get();
-			debug::ChunkDisassembly(chunk, path);
+			debug::ChunkDisassembly(chunk, path, true);
 		}
 	}
 
