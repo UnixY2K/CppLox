@@ -192,7 +192,8 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 
 		for (size_t i = 0; i < function.upvalueCount; i++) {
 			bool isLocal = static_cast<bool>(readByte(ip));
-			size_t index = getAddress(ip);
+			size_t index = static_cast<uint8_t>(readByte(ip));
+			offset += 2;
 			if (instruction == OpCode::OP_CLOSURE_LONG) {
 				index = index << 8 | static_cast<uint8_t>(readByte(ip));
 			}
@@ -202,12 +203,12 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 			    cli::terminal::green_colored(std::format("{:04X} ", offset)));
 			// print line
 			std::cout << cli::terminal::gray_colored("   | ");
-			std::cout << std::format(
+						std::cout << std::format(
 			    "{} {} {} {}\n",
 			    cli::terminal::lime_colored(std::format("{:<17}", "upvalue")),
 			    cli::terminal::gray_colored(std::format("{:<4d}", i)),
-			    cli::terminal::gray_colored(std::format("{:<4d}", index)),
-			    cli::terminal::gray_colored(isLocal ? "local" : "upvalue"));
+			    cli::terminal::gray_colored(isLocal ? "local  " : "upvalue"),
+			    cli::terminal::gray_colored(std::format("{:<4d}", index)));
 		}
 		return;
 	}
