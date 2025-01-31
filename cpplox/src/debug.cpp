@@ -15,6 +15,8 @@
 
 namespace lox::debug {
 
+std::byte prevByte(std::span<const std::byte>::iterator &ip) { return *(ip - 1); }
+
 std::byte readByte(std::span<const std::byte>::iterator &ip) { return *ip++; }
 
 std::byte nextByte(std::span<const std::byte>::iterator &ip) { return *++ip; }
@@ -22,8 +24,8 @@ std::byte nextByte(std::span<const std::byte>::iterator &ip) { return *++ip; }
 std::byte peekByte(std::span<const std::byte>::iterator &ip) { return *ip; }
 
 size_t getAddress(std::span<const std::byte>::iterator &ip) {
-	auto instruction = static_cast<lox::OpCode>(*ip);
-	size_t address = static_cast<uint8_t>(nextByte(ip));
+	auto instruction = static_cast<lox::OpCode>(prevByte(ip));
+	size_t address = static_cast<uint8_t>(readByte(ip));
 	[[unlikely]]
 	if (instruction == OpCode::OP_CONSTANT_LONG ||
 	    instruction == OpCode::OP_GET_LOCAL_LONG ||
@@ -35,7 +37,7 @@ size_t getAddress(std::span<const std::byte>::iterator &ip) {
 	    instruction == OpCode::OP_JUMP_IF_FALSE ||
 	    instruction == OpCode::OP_LOOP ||
 	    instruction == OpCode::OP_CLOSURE_LONG) {
-		address = address << 8 | static_cast<uint8_t>(nextByte(ip));
+		address = address << 8 | static_cast<uint8_t>(readByte(ip));
 	}
 	return address;
 }
@@ -95,7 +97,7 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 	} else {
 		std::cout << std::format("{:4d} ", chunk.getLine(offset));
 	}
-	auto instruction = static_cast<lox::OpCode>(peekByte(ip));
+	auto instruction = static_cast<lox::OpCode>(readByte(ip));
 
 	switch (instruction) {
 	case OpCode::OP_CONSTANT:
@@ -191,8 +193,10 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 		auto &function = *fn;
 
 		for (size_t i = 0; i < function.upvalueCount; i++) {
-			bool isLocal = static_cast<bool>(readByte(ip));
-			size_t index = static_cast<uint8_t>(readByte(ip));
+			std::byte b1 = readByte(ip);
+			std::byte b2 = readByte(ip);
+			bool isLocal = static_cast<bool>(b1);
+			size_t index = static_cast<uint8_t>(b2);
 			offset += 2;
 			if (instruction == OpCode::OP_CLOSURE_LONG) {
 				index = index << 8 | static_cast<uint8_t>(readByte(ip));
@@ -221,10 +225,10 @@ void InstructionDisassembly(const lox::Chunk &chunk,
 
 void ChunkDisassembly(const lox::Chunk &chunk, std::string_view name,
                       bool recursive) {
-	std::cout << std::format("{:=^34}\n", std::format(" {} ", name));
+	std::cout << std::format("{:=^44}\n", std::format(" {} ", name));
 
 	auto code = chunk.code();
-	for (auto ip = code.begin(); ip != code.end(); ip++) {
+	for (auto ip = code.begin(); ip != code.end();) {
 		InstructionDisassembly(chunk, ip);
 	}
 
