@@ -549,7 +549,7 @@ int Compiler::addUpvalue(size_t index, bool isLocal) {
 		}
 	}
 
-	if (count == UINT16_MAX) {
+	if (count == UINT8_MAX) {
 		error("Too many closure variables in function");
 		return 0;
 	}
