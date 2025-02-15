@@ -1,7 +1,8 @@
 #pragma once
 #include <cpplox/chunk.hpp>
-#include <cpplox/obj.hpp>
 #include <cpplox/value.hpp>
+#include <cpplox/object/ObjClosure.hpp>
+#include <cpplox/object/ObjNative.hpp>
 
 #include <cstddef>
 #include <memory>

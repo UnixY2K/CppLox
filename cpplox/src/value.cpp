@@ -1,8 +1,9 @@
 #include <cpplox/chunk.hpp>
-#include <cpplox/obj.hpp>
 #include <cpplox/value.hpp>
 
 #include <cpplox/object/ObjNative.hpp>
+
+#include <cpplox/internals/overloads.hpp>
 
 #include <format>
 #include <memory>
@@ -23,11 +24,6 @@ Value::Value(std::unique_ptr<Object> value) : value(std::move(value)) {}
 
 Value::Value(const Object &value) : value(value.clone()) {}
 
-Value::Value(const NativeFn &function) : value(ObjNative{function}.clone()) {
-}
-
-Value::Value(const ObjFunction &value) : value{value.clone()} {}
-
 Value::Value(const Value &other) : value(other.clone().value) {}
 
 Value::Value(Value &&other) noexcept : value(std::move(other.value)) {}
@@ -45,7 +41,7 @@ Value &Value::operator=(Value &&other) noexcept {
 Value Value::clone() const {
 	Value result;
 	std::visit(
-	    overloads{
+	    internals::overloads{
 	        [&result](const std::string &value) { result = Value{value}; },
 	        [&result](bool value) { result = Value{value}; },
 	        [&result](double value) { result = Value{value}; },
@@ -61,7 +57,7 @@ Value Value::clone() const {
 std::string Value::toString() const {
 	std::string result;
 	std::visit(
-	    overloads{
+	    internals::overloads{
 	        [&result](const std::string &value) { result = value; },
 	        [&result](bool value) { result = std::format("{}", value); },
 	        [&result](double value) { result = std::format("{}", value); },
@@ -78,7 +74,7 @@ std::string Value::toString() const {
 bool Value::isTruthy() const {
 	bool result = true;
 
-	std::visit(overloads{
+	std::visit(internals::overloads{
 	               // same value as the boolean
 	               [&result](bool value) { result = value; },
 	               // nil is always false
@@ -92,7 +88,7 @@ bool Value::isTruthy() const {
 
 bool Value::equals(const Value &other) const {
 	bool result = false;
-	std::visit(overloads{
+	std::visit(internals::overloads{
 	               [&result](const std::string &a, const std::string &b) {
 		               result = a == b;
 	               },

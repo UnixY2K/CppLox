@@ -3,6 +3,7 @@
 #include <cpplox/object.hpp>
 #include <cpplox/terminal.hpp>
 #include <cpplox/value.hpp>
+#include <cpplox/object/ObjFunction.hpp>
 
 #include <cstddef>
 #include <cstdint>

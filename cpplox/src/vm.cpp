@@ -3,10 +3,11 @@
 #include <cpplox/chunk.hpp>
 #include <cpplox/compiler.hpp>
 #include <cpplox/debug.hpp>
-#include <cpplox/obj.hpp>
 #include <cpplox/terminal.hpp>
 #include <cpplox/value.hpp>
 #include <cpplox/vm.hpp>
+
+#include <cpplox/internals/overloads.hpp>
 
 #include <chrono>
 #include <cstddef>
@@ -85,7 +86,7 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 		break;
 	case OpCode::OP_GREATER:
 		std::visit(
-		    overloads{
+		    internals::overloads{
 		        [this](double a, double b) {
 			        stack.push_back(std::make_unique<Value>(a > b));
 		        },
@@ -95,7 +96,7 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 		break;
 	case OpCode::OP_GREATER_EQUAL:
 		std::visit(
-		    overloads{
+		    internals::overloads{
 		        [this](double a, double b) {
 			        stack.push_back(std::make_unique<Value>(a >= b));
 		        },
@@ -105,7 +106,7 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 		break;
 	case OpCode::OP_LESS: {
 		std::visit(
-		    overloads{
+		    internals::overloads{
 		        [this](double a, double b) {
 			        stack.push_back(std::make_unique<Value>(a < b));
 		        },
@@ -116,7 +117,7 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 	}
 	case OpCode::OP_LESS_EQUAL:
 		std::visit(
-		    overloads{
+		    internals::overloads{
 		        [this](double a, double b) {
 			        stack.push_back(std::make_unique<Value>(a <= b));
 		        },
@@ -125,7 +126,7 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 		    va.value, vb.value);
 		break;
 	case OpCode::OP_ADD:
-		std::visit(overloads{
+		std::visit(internals::overloads{
 		               [this](double a, double b) {
 			               stack.push_back(std::make_unique<Value>(a + b));
 		               },
@@ -141,7 +142,7 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 		break;
 	case OpCode::OP_SUBTRACT:
 		std::visit(
-		    overloads{
+		    internals::overloads{
 		        [this](double a, double b) {
 			        stack.push_back(std::make_unique<Value>(a - b));
 		        },
@@ -151,7 +152,7 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 		break;
 	case OpCode::OP_MULTIPLY:
 		std::visit(
-		    overloads{
+		    internals::overloads{
 		        [this](double a, double b) {
 			        stack.push_back(std::make_unique<Value>(a * b));
 		        },
@@ -161,7 +162,7 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 		break;
 	case OpCode::OP_DIVIDE:
 		std::visit(
-		    overloads{
+		    internals::overloads{
 		        [this](double a, double b) {
 			        if (b == 0) {
 				        runtimeError("Division by zero.");

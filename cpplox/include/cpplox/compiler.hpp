@@ -1,7 +1,6 @@
 #pragma once
 #include <cpplox/chunk.hpp>
-#include <cpplox/compiler.hpp>
-#include <cpplox/obj.hpp>
+#include <cpplox/object/ObjFunction.hpp>
 #include <cpplox/scanner.hpp>
 
 #include <array>

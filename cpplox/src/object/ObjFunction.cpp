@@ -1,6 +1,4 @@
-#include <cpplox/chunk.hpp>
-#include <cpplox/obj.hpp>
-#include <cpplox/value.hpp>
+#include <cpplox/object/ObjFunction.hpp>
 
 #include <format>
 

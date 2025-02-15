@@ -1,7 +1,6 @@
 #include <cpplox/chunk.hpp>
 #include <cpplox/compiler.hpp>
 #include <cpplox/debug.hpp>
-#include <cpplox/obj.hpp>
 #include <cpplox/scanner.hpp>
 #include <cpplox/value.hpp>
 

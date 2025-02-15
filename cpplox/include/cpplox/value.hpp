@@ -1,5 +1,4 @@
 #pragma once
-#include <cpplox/obj.hpp>
 #include <cpplox/object.hpp>
 
 #include <memory>
@@ -23,9 +22,7 @@ class Value {
 	Value(const std::string_view value);
 	Value(std::unique_ptr<Object> value);
 	Value(const Object &value);
-	Value(const NativeFn &function);
 	// functions are owned by the object, so we need to move them
-	Value(const ObjFunction &value);
 	Value(const Value &other);
 	Value(Value &&other) noexcept;
 
