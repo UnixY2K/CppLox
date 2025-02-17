@@ -2,13 +2,15 @@
 #include <cpplox/object.hpp>
 #include <cpplox/value.hpp>
 
+#include <memory>
+
 namespace lox {
 
 class ObjUpvalue : public Object {
-	std::reference_wrapper<Value> location;
+	std::shared_ptr<Value> location;
 
   public:
-	ObjUpvalue(Value &location);
+	ObjUpvalue(std::shared_ptr<Value> location);
 
 	Value &getValue();
 
@@ -19,4 +21,3 @@ class ObjUpvalue : public Object {
 	virtual ~ObjUpvalue() = default;
 };
 } // namespace lox
-

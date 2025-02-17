@@ -1,8 +1,9 @@
 #pragma once
 #include <cpplox/chunk.hpp>
-#include <cpplox/value.hpp>
 #include <cpplox/object/ObjClosure.hpp>
 #include <cpplox/object/ObjNative.hpp>
+#include <cpplox/object/ObjUpvalue.hpp>
+#include <cpplox/value.hpp>
 
 #include <cstddef>
 #include <memory>
@@ -29,7 +30,7 @@ struct CallFrame {
 	// callframes are not copyable
 	CallFrame(const CallFrame &) = delete;
 
-	const ObjClosure closure;
+	ObjClosure closure;
 	std::span<const std::byte>::iterator ip;
 	size_t stackOffset = 0;
 };
@@ -38,6 +39,8 @@ class VM {
 	void defineNative(std::string_view name, NativeFn function);
 	void runtimeError(std::string_view message);
 
+	// returns the previous byte;
+	std::byte prevByte(std::span<const std::byte>::iterator &ip);
 	// gets the byte and increments the instruction pointer
 	std::byte readByte(std::span<const std::byte>::iterator &ip);
 	// increments the instruction pointer and then returns the current byte
@@ -49,6 +52,8 @@ class VM {
 
 	bool call(const ObjClosure &function, size_t argCount);
 	bool callValue(const Value &callee, size_t argCount);
+
+	ObjUpvalue captureUpvalue(std::shared_ptr<Value>);
 
 	size_t readIndex(std::span<const std::byte>::iterator &ip);
 	auto readConstant(std::span<const std::byte>::iterator &ip)
@@ -67,7 +72,7 @@ class VM {
   private:
 	bool had_error = false;
 	std::vector<std::unique_ptr<CallFrame>> callFrames;
-	std::vector<std::unique_ptr<Value>> stack;
+	std::vector<std::shared_ptr<Value>> stack;
 	std::unordered_map<std::string, Value> globals;
 	std::span<const std::byte>::iterator ip;
 };

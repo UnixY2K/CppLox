@@ -34,6 +34,8 @@ size_t getAddress(std::span<const std::byte>::iterator &ip) {
 	    instruction == OpCode::OP_GET_GLOBAL_LONG ||
 	    instruction == OpCode::OP_DEFINE_GLOBAL_LONG ||
 	    instruction == OpCode::OP_SET_GLOBAL_LONG ||
+		instruction == OpCode::OP_GET_UPVALUE_LONG ||
+	    instruction == OpCode::OP_SET_UPVALUE_LONG ||
 	    instruction == OpCode::OP_JUMP ||
 	    instruction == OpCode::OP_JUMP_IF_FALSE ||
 	    instruction == OpCode::OP_LOOP ||

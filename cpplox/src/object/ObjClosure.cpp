@@ -4,7 +4,8 @@
 
 namespace lox {
 
-ObjClosure::ObjClosure(const ObjFunction &function) : function{function} {};
+ObjClosure::ObjClosure(const ObjFunction &function)
+    : function{function}, upvalues(function.upvalueCount) {};
 
 bool ObjClosure::operator==(const ObjClosure &other) const {
 	return function.get() == other.function.get();
