@@ -558,7 +558,7 @@ InterpretResult VM::run() {
 				if (auto *function = dynamic_cast<ObjFunction *>(object->get());
 				    function) {
 					auto closure = ObjClosure{*function};
-					auto value = Value{closure};
+
 
 					for (size_t upValueIndex = 0;
 					     upValueIndex < function->upvalueCount;
@@ -581,16 +581,14 @@ InterpretResult VM::run() {
 								return InterpretResult::RUNTIME_ERROR;
 							}
 
-							Value upValue =
-							    Value(captureUpvalue(stack[upValueIndex]));
-							closure.upvalues.push_back(
-							    std::make_shared<Value>(upValue));
+							auto upValue = captureUpvalue(stack[upValueIndex]).getLocation();
+							closure.upvalues.push_back(upValue);
 						} else {
 							closure.upvalues.push_back(
 							    callFrame.closure.upvalues[relativeIndex]);
 						}
 					}
-
+					auto value = Value{closure};
 					stack.emplace_back(std::make_shared<Value>(value));
 
 				} else {

@@ -13,6 +13,7 @@ class ObjUpvalue : public Object {
 	ObjUpvalue(std::shared_ptr<Value> location);
 
 	Value &getValue();
+	std::shared_ptr<Value> getLocation() const;
 
 	virtual std::unique_ptr<Object> clone() const override;
 	virtual std::string toString() const override;

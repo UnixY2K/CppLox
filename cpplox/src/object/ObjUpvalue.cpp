@@ -4,6 +4,8 @@ namespace lox {
 
 ObjUpvalue::ObjUpvalue(std::shared_ptr<Value> location) : location{location} {}
 
+std::shared_ptr<Value> ObjUpvalue::getLocation() const { return location; }
+
 Value &ObjUpvalue::getValue() { return *location.get(); }
 
 std::unique_ptr<Object> ObjUpvalue::clone() const {
