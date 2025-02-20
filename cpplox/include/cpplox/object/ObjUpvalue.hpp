@@ -7,13 +7,13 @@
 namespace lox {
 
 class ObjUpvalue : public Object {
-	std::shared_ptr<Value> location;
+	std::shared_ptr<std::unique_ptr<Value>> location;
 
   public:
-	ObjUpvalue(std::shared_ptr<Value> location);
+	ObjUpvalue(std::shared_ptr<std::unique_ptr<Value>> location);
 
 	Value &getValue();
-	std::shared_ptr<Value> getLocation() const;
+	std::shared_ptr<std::unique_ptr<Value>> getLocation() const;
 
 	virtual std::unique_ptr<Object> clone() const override;
 	virtual std::string toString() const override;

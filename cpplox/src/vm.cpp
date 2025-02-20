@@ -76,35 +76,42 @@ std::byte VM::peekByte(std::span<const std::byte>::iterator &ip) { return *ip; }
 
 void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 	OpCode instruction = static_cast<OpCode>(peekByte(ip));
-	auto vb = (*stack.back()).clone();
+	auto vb = (*stack.back())->clone();
 	stack.pop_back();
-	auto va = (*stack.back()).clone();
+	auto va = (*stack.back())->clone();
 	stack.pop_back();
 	auto onlyNumbers = [this](const auto &, const auto &) {
 		runtimeError("Operands must be numbers.");
 	};
 	switch (instruction) {
-	case OpCode::OP_EQUAL:
-		stack.emplace_back(std::make_shared<Value>(va.equals(vb)));
+	case OpCode::OP_EQUAL: {
+		stack.emplace_back(std::make_shared<std::unique_ptr<Value>>(
+		    std::make_unique<Value>(va.equals(vb))));
 		break;
-	case OpCode::OP_NOT_EQUAL:
-		stack.emplace_back(std::make_shared<Value>(!va.equals(vb)));
+	}
+	case OpCode::OP_NOT_EQUAL: {
+		stack.emplace_back(std::make_shared<std::unique_ptr<Value>>(
+		    std::make_unique<Value>(!va.equals(vb))));
 		break;
-	case OpCode::OP_GREATER:
+	}
+	case OpCode::OP_GREATER: {
 		std::visit(
 		    internals::overloads{
 		        [this](double a, double b) {
-			        stack.push_back(std::make_shared<Value>(a > b));
+			        stack.push_back(std::make_shared<std::unique_ptr<Value>>(
+			            std::make_unique<Value>(a > b)));
 		        },
 		        onlyNumbers,
 		    },
 		    va.value, vb.value);
 		break;
+	}
 	case OpCode::OP_GREATER_EQUAL:
 		std::visit(
 		    internals::overloads{
 		        [this](double a, double b) {
-			        stack.push_back(std::make_shared<Value>(a >= b));
+			        stack.push_back(std::make_shared<std::unique_ptr<Value>>(
+			            std::make_unique<Value>(a >= b)));
 		        },
 		        onlyNumbers,
 		    },
@@ -114,7 +121,8 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 		std::visit(
 		    internals::overloads{
 		        [this](double a, double b) {
-			        stack.push_back(std::make_shared<Value>(a < b));
+			        stack.push_back(std::make_shared<std::unique_ptr<Value>>(
+			            std::make_unique<Value>(a < b)));
 		        },
 		        onlyNumbers,
 		    },
@@ -125,48 +133,55 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 		std::visit(
 		    internals::overloads{
 		        [this](double a, double b) {
-			        stack.push_back(std::make_shared<Value>(a <= b));
+			        stack.push_back(std::make_shared<std::unique_ptr<Value>>(
+			            std::make_unique<Value>(a <= b)));
 		        },
 		        onlyNumbers,
 		    },
 		    va.value, vb.value);
 		break;
 	case OpCode::OP_ADD:
-		std::visit(internals::overloads{
-		               [this](double a, double b) {
-			               stack.push_back(std::make_shared<Value>(a + b));
-		               },
-		               [this](const std::string &a, const std::string &b) {
-			               stack.emplace_back(std::make_shared<Value>(a + b));
-		               },
-		               [this](const auto &, const auto &) {
-			               runtimeError("Operands must be two numbers or "
-			                            "two strings.");
-		               },
-		           },
-		           va.value, vb.value);
+		std::visit(
+		    internals::overloads{
+		        [this](double a, double b) {
+			        stack.push_back(std::make_shared<std::unique_ptr<Value>>(
+			            std::make_unique<Value>(a + b)));
+		        },
+		        [this](const std::string &a, const std::string &b) {
+			        stack.emplace_back(std::make_shared<std::unique_ptr<Value>>(
+			            std::make_unique<Value>(a + b)));
+		        },
+		        [this](const auto &, const auto &) {
+			        runtimeError("Operands must be two numbers or "
+			                     "two strings.");
+		        },
+		    },
+		    va.value, vb.value);
 		break;
 	case OpCode::OP_SUBTRACT:
 		std::visit(
 		    internals::overloads{
 		        [this](double a, double b) {
-			        stack.push_back(std::make_shared<Value>(a - b));
+			        stack.push_back(std::make_shared<std::unique_ptr<Value>>(
+			            std::make_unique<Value>(a - b)));
 		        },
 		        onlyNumbers,
 		    },
 		    va.value, vb.value);
 		break;
-	case OpCode::OP_MULTIPLY:
+	case OpCode::OP_MULTIPLY: {
 		std::visit(
 		    internals::overloads{
 		        [this](double a, double b) {
-			        stack.push_back(std::make_shared<Value>(a * b));
+			        stack.push_back(std::make_shared<std::unique_ptr<Value>>(
+			            std::make_unique<Value>(a * b)));
 		        },
 		        onlyNumbers,
 		    },
 		    va.value, vb.value);
 		break;
-	case OpCode::OP_DIVIDE:
+	}
+	case OpCode::OP_DIVIDE: {
 		std::visit(
 		    internals::overloads{
 		        [this](double a, double b) {
@@ -174,12 +189,14 @@ void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
 				        runtimeError("Division by zero.");
 				        return;
 			        }
-			        stack.push_back(std::make_shared<Value>(a / b));
+			        stack.push_back(std::make_shared<std::unique_ptr<Value>>(
+			            std::make_unique<Value>(a / b)));
 		        },
 		        onlyNumbers,
 		    },
 		    va.value, vb.value);
 		break;
+	}
 	default:
 		[[unlikely]] throw std::runtime_error("Unhandled OpCode in binaryOp");
 	}
@@ -225,7 +242,7 @@ bool VM::callValue(const Value &callee, size_t argCount) {
 			    std::views::take(argCount) |
 			    std::views::transform(
 			        [](const auto &ptr) -> std::reference_wrapper<Value> {
-				        return std::ref(*ptr);
+				        return std::ref(**ptr);
 			        });
 			std::vector<std::reference_wrapper<Value>> args_vec(
 			    args_view.begin(), args_view.end());
@@ -234,7 +251,8 @@ bool VM::callValue(const Value &callee, size_t argCount) {
 			auto result = native->function(argCount, args);
 			// remove the current args and the function in the stack
 			stack.erase(stack.end() - (argCount + 1), stack.end());
-			stack.emplace_back(std::make_shared<Value>(result));
+			stack.emplace_back(std::make_shared<std::unique_ptr<Value>>(
+			    std::make_unique<Value>(result)));
 			return true;
 		}
 	}
@@ -242,7 +260,7 @@ bool VM::callValue(const Value &callee, size_t argCount) {
 	return false;
 }
 
-ObjUpvalue VM::captureUpvalue(std::shared_ptr<Value> value) {
+ObjUpvalue VM::captureUpvalue(std::shared_ptr<std::unique_ptr<Value>> value) {
 	return ObjUpvalue(value);
 }
 
@@ -293,10 +311,10 @@ InterpretResult VM::run() {
 			                         cli::terminal::orange_colored("#STACK#"),
 			                         cli::terminal::gray_colored(line_glyph));
 			for (auto &slot : stack) {
-				if (slot) {
+				if (slot && *slot) {
 					std::cout << std::format(
 					    "[ {} ]",
-					    cli::terminal::yellow_colored((*slot).toString()));
+					    cli::terminal::yellow_colored((*slot)->toString()));
 				} else {
 					std::cout << std::format(
 					    "[ {} ]", cli::terminal::red_colored("**VM_NULLPTR**"));
@@ -316,20 +334,22 @@ InterpretResult VM::run() {
 			if (!constant.has_value()) {
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			stack.emplace_back(
-			    std::make_shared<Value>(constant->get().clone()));
+			stack.emplace_back(std::make_shared<std::unique_ptr<Value>>(
+			    std::make_unique<Value>(constant->get().clone())));
 			break;
 		}
 		case OpCode::OP_NIL: {
-			stack.emplace_back(std::make_shared<Value>());
+			stack.emplace_back(std::make_shared<std::unique_ptr<Value>>());
 			break;
 		}
 		case OpCode::OP_TRUE: {
-			stack.emplace_back(std::make_shared<Value>(true));
+			stack.emplace_back(std::make_shared<std::unique_ptr<Value>>(
+			    std::make_unique<Value>(true)));
 			break;
 		}
 		case OpCode::OP_FALSE: {
-			stack.emplace_back(std::make_shared<Value>(false));
+			stack.emplace_back(std::make_shared<std::unique_ptr<Value>>(
+			    std::make_unique<Value>(false)));
 			break;
 		}
 		case OpCode::OP_POP: {
@@ -349,8 +369,8 @@ InterpretResult VM::run() {
 				runtimeError("tried to access an non existing local");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			stack.emplace_back(
-			    std::make_shared<Value>((*stack[index]).clone()));
+			stack.emplace_back(std::make_shared<std::unique_ptr<Value>>(
+			    std::make_unique<Value>((*stack[index])->clone())));
 			break;
 		}
 		case OpCode::OP_SET_LOCAL:
@@ -366,7 +386,7 @@ InterpretResult VM::run() {
 				runtimeError("tried to set an non existing local");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			(*stack[index]) = (*stack.back()).clone();
+			(*stack[index]) = std::make_unique<Value>((*stack.back())->clone());
 			break;
 		}
 		case OpCode::OP_GET_GLOBAL:
@@ -377,7 +397,8 @@ InterpretResult VM::run() {
 			}
 			std::string name = value->get().toString();
 			if (auto it = globals.find(name); it != globals.end()) {
-				stack.emplace_back(std::make_shared<Value>(it->second.clone()));
+				stack.emplace_back(std::make_shared<std::unique_ptr<Value>>(
+				    std::make_unique<Value>(it->second.clone())));
 			} else {
 				runtimeError(std::format("Undefined variable '{}'", name));
 				return InterpretResult::RUNTIME_ERROR;
@@ -395,7 +416,7 @@ InterpretResult VM::run() {
 				runtimeError("Stack underflow.");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			globals[name] = (*stack.back()).clone();
+			globals[name] = (*stack.back())->clone();
 			stack.pop_back();
 			break;
 		}
@@ -407,7 +428,7 @@ InterpretResult VM::run() {
 			}
 			std::string name = value->get().toString();
 			if (auto it = globals.find(name); it != globals.end()) {
-				globals[name] = (*stack.back()).clone();
+				globals[name] = (*stack.back())->clone();
 			} else {
 				runtimeError(std::format("Undefined variable '{}'", name));
 				return InterpretResult::RUNTIME_ERROR;
@@ -466,7 +487,7 @@ InterpretResult VM::run() {
 				runtimeError("Stack underflow.");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			auto &value = *stack.back();
+			auto &value = *stack.back()->get();
 			if (!std::holds_alternative<double>(value.value)) {
 				runtimeError("Operand must be a number.");
 				return InterpretResult::RUNTIME_ERROR;
@@ -479,7 +500,7 @@ InterpretResult VM::run() {
 				runtimeError("Stack underflow.");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			auto &value = *stack.back();
+			auto &value = *stack.back()->get();
 			value = !value.isTruthy();
 			break;
 		}
@@ -495,7 +516,7 @@ InterpretResult VM::run() {
 				return InterpretResult::RUNTIME_ERROR;
 			}
 			auto &value = *stack.back();
-			std::cout << std::format("{}\n", (value).toString());
+			std::cout << std::format("{}\n", (value)->toString());
 			stack.pop_back();
 			break;
 		}
@@ -506,7 +527,7 @@ InterpretResult VM::run() {
 		}
 		case OpCode::OP_JUMP_IF_FALSE: {
 			size_t offset = readIndex(ip);
-			if (!(*stack.back()).isTruthy()) {
+			if (!(*stack.back())->isTruthy()) {
 				ip += offset;
 			}
 			break;
@@ -523,7 +544,7 @@ InterpretResult VM::run() {
 				return InterpretResult::RUNTIME_ERROR;
 			}
 			size_t calleeIndex = stack.size() - argCount - 1;
-			auto &callee = *stack[calleeIndex];
+			auto &callee = *stack[calleeIndex]->get();
 			bool isNative = false;
 			if (auto obj = std::get_if<std::unique_ptr<Object>>(&callee.value);
 			    obj) {
@@ -559,7 +580,6 @@ InterpretResult VM::run() {
 				    function) {
 					auto closure = ObjClosure{*function};
 
-
 					for (size_t upValueIndex = 0;
 					     upValueIndex < function->upvalueCount;
 					     upValueIndex++) {
@@ -581,7 +601,8 @@ InterpretResult VM::run() {
 								return InterpretResult::RUNTIME_ERROR;
 							}
 
-							auto upValue = captureUpvalue(stack[upValueIndex]).getLocation();
+							auto upValue = captureUpvalue(stack[upValueIndex])
+							                   .getLocation();
 							closure.upvalues.push_back(upValue);
 						} else {
 							closure.upvalues.push_back(
@@ -589,7 +610,8 @@ InterpretResult VM::run() {
 						}
 					}
 					auto value = Value{closure};
-					stack.emplace_back(std::make_shared<Value>(value));
+					stack.emplace_back(std::make_shared<std::unique_ptr<Value>>(
+					    std::make_unique<Value>(value)));
 
 				} else {
 					runtimeError(
@@ -609,9 +631,16 @@ InterpretResult VM::run() {
 				runtimeError("Stack underflow.");
 				return InterpretResult::RUNTIME_ERROR;
 			}
-			Value result = (*stack.back()).clone();
+			if (!stack.back() || !*stack.back()) {
+				runtimeError(
+				    std::format("{}  NULLPTR access",
+				                cli::terminal::red_colored("**VM ERROR**")));
+				return InterpretResult::RUNTIME_ERROR;
+			}
+			Value result = (*stack.back())->clone();
 			stack.erase(stack.begin() + top, stack.end());
-			stack.emplace_back(std::make_shared<Value>(result));
+			stack.emplace_back(std::make_shared<std::unique_ptr<Value>>(
+			    std::make_unique<Value>(result)));
 			if (callFrames.empty()) {
 				runtimeError("CallFrames underflow.");
 				return InterpretResult::RUNTIME_ERROR;
@@ -630,7 +659,8 @@ InterpretResult VM::run() {
 InterpretResult VM::interpret(const ObjFunction &function) {
 	had_error = false;
 	callFrames.clear();
-	stack.push_back(std::make_shared<Value>(function.clone()));
+	stack.push_back(std::make_shared<std::unique_ptr<Value>>(
+	    std::make_unique<Value>(function.clone())));
 	call(function, 0);
 	return run();
 }

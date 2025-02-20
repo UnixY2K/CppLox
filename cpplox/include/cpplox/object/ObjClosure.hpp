@@ -2,13 +2,14 @@
 #include <cpplox/object.hpp>
 #include <cpplox/object/ObjFunction.hpp>
 
+#include <memory>
 #include <vector>
 
 namespace lox {
 class ObjClosure : public Object {
   public:
 	std::reference_wrapper<const ObjFunction> function;
-	std::vector<std::shared_ptr<Value>> upvalues;
+	std::vector<std::shared_ptr<std::unique_ptr<Value>>> upvalues;
 
 	ObjClosure(const ObjFunction &function);
 
