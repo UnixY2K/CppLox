@@ -320,15 +320,18 @@ InterpretResult VM::run() {
 			    std::make_shared<Value>(constant->get().clone()));
 			break;
 		}
-		case OpCode::OP_NIL:
+		case OpCode::OP_NIL: {
 			stack.emplace_back(std::make_shared<Value>());
 			break;
-		case OpCode::OP_TRUE:
+		}
+		case OpCode::OP_TRUE: {
 			stack.emplace_back(std::make_shared<Value>(true));
 			break;
-		case OpCode::OP_FALSE:
+		}
+		case OpCode::OP_FALSE: {
 			stack.emplace_back(std::make_shared<Value>(false));
 			break;
+		}
 		case OpCode::OP_POP: {
 			if (stack.empty()) {
 				runtimeError("Stack underflow.");
@@ -414,6 +417,16 @@ InterpretResult VM::run() {
 		case OpCode::OP_GET_UPVALUE:
 		case OpCode::OP_GET_UPVALUE_LONG: {
 			size_t slot = readIndex(ip);
+			if (callFrame.closure.upvalues.size() <= slot) {
+				runtimeError("upvalue index is out of bounds");
+				return InterpretResult::RUNTIME_ERROR;
+			}
+			if (callFrame.closure.upvalues[slot] == nullptr) {
+				runtimeError(std::format(
+				    "{}: upvalue at index {} is nullptr",
+				    cli::terminal::red_colored("**VM_ERROR**"), slot));
+				return InterpretResult::RUNTIME_ERROR;
+			}
 			stack.emplace_back(callFrame.closure.upvalues[slot]);
 			break;
 		}
