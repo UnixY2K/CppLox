@@ -339,7 +339,9 @@ InterpretResult VM::run() {
 			break;
 		}
 		case OpCode::OP_NIL: {
-			stack.emplace_back(std::make_shared<std::unique_ptr<Value>>());
+			stack.emplace_back(std::make_shared<std::unique_ptr<Value>>(
+				std::make_unique<Value>()
+			));
 			break;
 		}
 		case OpCode::OP_TRUE: {
