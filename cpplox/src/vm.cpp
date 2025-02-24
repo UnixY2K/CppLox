@@ -1,5 +1,5 @@
-#include "cpplox/object/ObjClosure.hpp"
-#include "cpplox/object/ObjUpvalue.hpp"
+#include <cpplox/object/ObjClosure.hpp>
+#include <cpplox/object/ObjUpvalue.hpp>
 #include <cpplox/private/constants.hpp>
 
 #include <cpplox/chunk.hpp>
@@ -19,6 +19,7 @@
 #include <memory>
 #include <ranges>
 #include <span>
+#include <stdexcept>
 #include <string_view>
 #include <variant>
 
@@ -75,7 +76,7 @@ std::byte VM::nextByte(std::span<const std::byte>::iterator &ip) {
 std::byte VM::peekByte(std::span<const std::byte>::iterator &ip) { return *ip; }
 
 void VM::binaryOp(std::span<const std::byte>::iterator &ip) {
-	OpCode instruction = static_cast<OpCode>(peekByte(ip));
+	OpCode instruction = static_cast<OpCode>(prevByte(ip));
 	auto vb = (*stack.back())->clone();
 	stack.pop_back();
 	auto va = (*stack.back())->clone();
@@ -664,7 +665,14 @@ InterpretResult VM::interpret(const ObjFunction &function) {
 	stack.push_back(std::make_shared<std::unique_ptr<Value>>(
 	    std::make_unique<Value>(function.clone())));
 	call(function, 0);
-	return run();
+	try {
+		return run();
+	} catch (std::runtime_error ex) {
+		std::cout << std::format("{}:{}\n",
+		                         cli::terminal::red_colored("**VM_EXCEPTION**"),
+		                         ex.what());
+		return InterpretResult::RUNTIME_ERROR;
+	}
 }
 
 InterpretResult VM::interpret(std::string_view source) {
