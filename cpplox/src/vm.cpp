@@ -340,8 +340,7 @@ InterpretResult VM::run() {
 		}
 		case OpCode::OP_NIL: {
 			stack.emplace_back(std::make_shared<std::unique_ptr<Value>>(
-				std::make_unique<Value>()
-			));
+			    std::make_unique<Value>()));
 			break;
 		}
 		case OpCode::OP_TRUE: {
@@ -462,8 +461,9 @@ InterpretResult VM::run() {
 			}
 			// remove the current ptr and make it point to
 			// callFrame.closure.upvalues[slot]
-			auto value = stack.back();
-			callFrame.closure.upvalues[slot] = value;
+			auto value = stack.back().get()->get()->clone();
+			(*callFrame.closure.upvalues[slot]) =
+			    std::make_unique<Value>(value);
 			break;
 		}
 		case OpCode::OP_EQUAL:
