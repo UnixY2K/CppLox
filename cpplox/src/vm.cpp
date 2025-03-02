@@ -667,7 +667,7 @@ InterpretResult VM::interpret(const ObjFunction &function) {
 	call(function, 0);
 	try {
 		return run();
-	} catch (std::runtime_error ex) {
+	} catch (std::runtime_error &ex) {
 		std::cout << std::format("{}:{}\n",
 		                         cli::terminal::red_colored("**VM_EXCEPTION**"),
 		                         ex.what());
